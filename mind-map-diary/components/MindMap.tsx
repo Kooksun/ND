@@ -145,8 +145,10 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                 nodeTypes={nodeTypes}
                 fitView
                 defaultViewport={defaultViewport}
+                snapToGrid={true}
+                snapGrid={[20, 20]}
             >
-                <Background />
+                <Background gap={20} />
                 <Controls />
                 <MiniMap />
                 {nodes.length === 0 && (
