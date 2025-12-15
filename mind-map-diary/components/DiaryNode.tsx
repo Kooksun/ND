@@ -41,9 +41,10 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
 
     const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
+        if (isEditing) return;
         setEditStartWidth(e.currentTarget.offsetWidth);
         setIsEditing(true);
-    }, []);
+    }, [isEditing]);
 
     const TARGET_WIDTH = 320;
     const editStyle = (isEditing && editStartWidth) ? {
