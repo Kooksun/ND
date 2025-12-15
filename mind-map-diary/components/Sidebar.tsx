@@ -8,7 +8,7 @@ import styles from "./Sidebar.module.css";
 interface SidebarProps {
     currentMapId: string | null;
     onSelectMap: (mapId: string) => void;
-    onNewMap: () => void;
+    onNewMap: (type: 'blank' | 'daily') => void;
 }
 
 export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
@@ -43,13 +43,25 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         <div className={styles.container}>
             <div className={styles.header}>
                 <h2 className={styles.title}>내 다이어리</h2>
-                <button
-                    onClick={onNewMap}
-                    className={styles.newButton}
-                >
-                    <Plus size={18} />
-                    <span>새 페이지</span>
-                </button>
+                <div className={styles.buttonGroup}>
+                    <button
+                        onClick={() => onNewMap('blank')}
+                        className={styles.newButton}
+                        title="빈 페이지"
+                    >
+                        <Plus size={18} />
+                        <span>새 페이지</span>
+                    </button>
+                    <button
+                        onClick={() => onNewMap('daily')}
+                        className={`${styles.newButton} ${styles.dailyButton}`}
+                        title="데일리 모드"
+                        style={{ marginLeft: '5px', backgroundColor: '#e17055' }}
+                    >
+                        <Plus size={18} />
+                        <span>데일리</span>
+                    </button>
+                </div>
             </div>
 
             <div className={styles.list}>

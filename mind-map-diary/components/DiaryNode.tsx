@@ -6,17 +6,26 @@ import styles from './DiaryNode.module.css';
 const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [title, setTitle] = useState(data.label || "");
     const [content, setContent] = useState(data.data?.content || data.content || "");
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         setTitle(data.label || "");
         setContent(data.data?.content || data.content || "");
     }, [data.label, data.data, data.content]);
 
+    // Reset editing state when node is deselected
+    useEffect(() => {
+        if (!selected) {
+            setIsEditing(false);
+        }
+    }, [selected]);
+
     const handleSave = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onUpdateContent) {
             await data.onUpdateContent(id, title, content);
         }
+        setIsEditing(false); // Optionally exit edit mode on save
     }, [data, id, title, content]);
 
     const handleDelete = useCallback(async (e: React.MouseEvent) => {
@@ -28,12 +37,20 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         }
     }, [data, id]);
 
+    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditing(true);
+    }, []);
+
     return (
-        <div className={`${styles.diaryNode} ${selected ? styles.selected : ''}`}>
+        <div
+            className={`${styles.diaryNode} ${isEditing ? styles.editing : ''} ${selected ? styles.selected : ''}`}
+            onDoubleClick={handleDoubleClick}
+        >
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
 
             <div className={styles.content}>
-                {selected ? (
+                {isEditing ? (
                     <>
                         <input
                             className={`${styles.titleInput} nodrag`} // Prevents dragging the node when interacting with input
@@ -65,7 +82,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                     </>
                 )}
 
-                {!selected && (
+                {!isEditing && (
                     <button
                         className={styles.addBtn}
                         onClick={(e) => {

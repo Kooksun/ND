@@ -25,8 +25,8 @@ export default function Home() {
     }
   }, [maps, currentMapId]);
 
-  const handleNewMap = async () => {
-    const newId = await createMap();
+  const handleNewMap = async (type: 'blank' | 'daily' = 'blank') => {
+    const newId = await createMap(undefined, type);
     if (newId) {
       setCurrentMapId(newId);
     }

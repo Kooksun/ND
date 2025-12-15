@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -37,7 +37,7 @@ export const useMaps = () => {
         return () => unsubscribe();
     }, [user]);
 
-    const createMap = async (requestedTitle?: string) => {
+    const createMap = async (requestedTitle?: string, type: 'blank' | 'daily' = 'blank') => {
         if (!user) return null;
         try {
             let title = requestedTitle;
@@ -46,25 +46,78 @@ export const useMaps = () => {
                 const now = new Date();
                 const dateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일의 기록`;
 
+                // Add suffix for Daily Mode to distinguish
+                const baseTitle = type === 'daily' ? `${dateStr} (데일리)` : dateStr;
+
                 // Check for duplicates
-                let candidateTitle = dateStr;
+                let candidateTitle = baseTitle;
                 let counter = 1;
 
-                // Simple logic: if 'Title' exists, try 'Title #2', 'Title #3'...
-                // Note: accurate check relies on 'maps' being up to date, which usually is due to snapshot
                 while (maps.some(m => m.title === candidateTitle)) {
                     counter++;
-                    candidateTitle = `${dateStr} #${counter}`;
+                    candidateTitle = `${baseTitle} #${counter}`;
                 }
                 title = candidateTitle;
             }
 
-            const docRef = await addDoc(collection(db, "users", user.uid, "maps"), {
+            const mapDocRef = await addDoc(collection(db, "users", user.uid, "maps"), {
                 title,
+                type, // Store the type just in case
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
-            return docRef.id;
+
+            // If Daily Mode, create the initial node structure
+            if (type === 'daily') {
+                const batch = writeBatch(db);
+                const nodesCollection = collection(db, "users", user.uid, "maps", mapDocRef.id, "nodes");
+                const edgesCollection = collection(db, "users", user.uid, "maps", mapDocRef.id, "edges");
+
+                // 1. Root Node: "I today..."
+                const rootNodeRef = doc(nodesCollection);
+                batch.set(rootNodeRef, {
+                    label: "나는 오늘...",
+                    position: { x: 0, y: 0 },
+                    data: { label: "나는 오늘..." }, // Initial data needed for ReactFlow
+                    type: 'diary',
+                    createdAt: serverTimestamp(),
+                });
+
+                // 2. Child Nodes: "Worked", "Studied", "Played Games"
+                // Using hardcoded positions for now, relative to root (0,0)
+                const children = [
+                    { label: "일을 했다", y: -100, color: '#ff7675' },
+                    { label: "공부를 했다", y: 0, color: '#74b9ff' },
+                    { label: "게임을 했다", y: 100, color: '#55efc4' }
+                ];
+
+                children.forEach((child) => {
+                    const childNodeRef = doc(nodesCollection);
+                    batch.set(childNodeRef, {
+                        label: child.label,
+                        position: { x: 300, y: child.y },
+                        data: {
+                            label: child.label,
+                            isChoice: true, // Special flag for choice nodes
+                            parentId: rootNodeRef.id // Helper for logic
+                        },
+                        type: 'diary',
+                        createdAt: serverTimestamp(),
+                    });
+
+                    // Edge from Root to Child
+                    const edgeRef = doc(edgesCollection);
+                    batch.set(edgeRef, {
+                        source: rootNodeRef.id,
+                        target: childNodeRef.id,
+                        id: `e${rootNodeRef.id}-${childNodeRef.id}`
+                    });
+                });
+
+                await batch.commit();
+            }
+
+            return mapDocRef.id;
         } catch (error) {
             console.error("Error creating map:", error);
             return null;

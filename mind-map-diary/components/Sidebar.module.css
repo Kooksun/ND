@@ -21,20 +21,35 @@
     margin-bottom: 15px;
 }
 
-.newButton {
+.buttonGroup {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
+    gap: 5px;
+}
+
+.newButton {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
     background-color: #0984e3;
     color: white;
-    padding: 10px 15px;
+    padding: 10px 8px;
+    /* Slightly reduced padding */
     border-radius: 8px;
     border: none;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.dailyButton:hover {
+    background-color: #d63031 !important;
+    /* Slightly darker red */
 }
 
 .newButton:hover {

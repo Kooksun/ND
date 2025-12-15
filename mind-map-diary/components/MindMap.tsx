@@ -27,6 +27,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         addNewEdge,
         updateNodePosition,
         updateNodeContent,
+        updateNodeVisibility,
         deleteNode
     } = useMindMap(mapId);
 
@@ -83,6 +84,40 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         updateNodePosition(node.id, node.position);
     }, [updateNodePosition]);
 
+    const onSelectionChange = useCallback(async ({ nodes: selectedNodes }: { nodes: Node[] }) => {
+        // Feature: Daily Mode Choice Logic
+        // Triggered when selection changes. We only care if a SINGLE node is selected and it's a choice node.
+        if (selectedNodes.length === 1) {
+            const node = selectedNodes[0];
+            if (node.data && node.data.isChoice && node.data.parentId) {
+                // Find siblings
+                const siblings = nodes.filter(n =>
+                    n.id !== node.id &&
+                    n.data?.parentId === node.data.parentId &&
+                    n.data?.isChoice
+                );
+
+                if (siblings.length > 0) {
+                    const anyVisible = siblings.some(n => !n.hidden);
+
+                    if (anyVisible) {
+                        try {
+                            // Hide all siblings
+                            await Promise.all(siblings.map(sibling => updateNodeVisibility(sibling.id, true)));
+
+                            // Ensure selected is visible
+                            if (node.hidden) {
+                                await updateNodeVisibility(node.id, false);
+                            }
+                        } catch (error) {
+                            console.error("Failed to update node visibility:", error);
+                        }
+                    }
+                }
+            }
+        }
+    }, [nodes, updateNodeVisibility]);
+
     if (!mapId) {
         return (
             <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-500">
@@ -103,6 +138,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                 onEdgesChange={hookOnEdgesChange}
                 onConnect={hookOnConnect}
                 onNodeDragStop={onNodeDragStop}
+                onSelectionChange={onSelectionChange}
                 onNodesDelete={(nodes) => {
                     nodes.forEach(node => handleDeleteNode(node.id));
                 }}

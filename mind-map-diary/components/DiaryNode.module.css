@@ -17,6 +17,13 @@
 }
 
 .diaryNode.selected {
+    border-color: #0984e3;
+    /* Removed expansion styles from selected */
+    /* z-index slightly higher to show on top of unselected */
+    z-index: 10;
+}
+
+.diaryNode.editing {
     min-width: 300px;
     max-width: 300px;
     min-height: 200px;
@@ -24,7 +31,53 @@
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #0984e3;
-    transform: scale(1.02);
+
+    /* Top-Center Expansion Logic */
+    /* The node in ReactFlow is positioned absolute top/left. 
+       To expand from center, we need to shift it left by 50% of the *extra* width? 
+       No, easier is: position absolute relative to the 'anchor' point.
+       But ReactFlow controls the outer div style (top/left).
+       If we change width here, it grows to the right.
+       To make it look like top-center, we can use transform.
+       BUT, internal content usage means we want actual width.
+       
+       Trick: Use negative margin-left equal to half the width difference?
+       Or transform: translate(-50%, 0) and left: 50%?
+       ReactFlow positions the *wrapper*. We are in the inner div.
+       
+       Let's try transform: translateX(-25%) scale(1) ? 
+       Original width avg ~200px. New width 300px. diff 100px.
+       Shift left by 50px.
+       
+       Better approach for "Top Center":
+       Use properties that don't affect layout flow if possible, or accept the shift.
+       However, the user wants visual center alignment.
+       
+       If we use `position: absolute` and `left: 50%`, `transform: translateX(-50%)`.
+       But we can't easily change the parent's positioning context.
+       
+       Let's assume standard behavior:
+       If we just add `transform: translateX(-15%)` (approx) it might look centered?
+       No, that's hacky.
+       
+       Robust CSS solution:
+       When editing, we want the *visual* box to be wider than the *logical* node?
+       If so:
+       width: 300px;
+       margin-left: -50px; (Assuming original was ~200, growth 100, half 50).
+       But original width varies (min 160, max 240).
+       
+       Let's try standard `transform: translateX` with specific pixel value if possible, 
+       or simpler: 
+       transform-origin: top center;
+       But changing width isn't a transform.
+       
+       Let's use the explicit `margin-left` trick relative to the growth.
+       If we assume base width is ~200px and new is 300px.
+       margin-left: -50px is a decent approximation.
+    */
+    margin-left: -50px;
+    /* Rough shifting to align centers */
 }
 
 .content {

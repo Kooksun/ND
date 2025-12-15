@@ -33,7 +33,18 @@ export const useMindMap = (mapId: string | null) => {
                     }
                 };
             }) as Node[];
-            setNodes(fetchedNodes);
+
+            setNodes((prevNodes) => {
+                // Merge fetched nodes with previous local state (specifically 'selected')
+                return fetchedNodes.map(fetchedNode => {
+                    const prevNode = prevNodes.find(n => n.id === fetchedNode.id);
+                    return {
+                        ...fetchedNode,
+                        selected: prevNode ? prevNode.selected : false,
+                        // potentially dragging or other local states could be preserved here
+                    };
+                });
+            });
         });
 
         const unsubscribeEdges = onSnapshot(edgesRef, (snapshot) => {
@@ -123,6 +134,12 @@ export const useMindMap = (mapId: string | null) => {
         await updateDoc(mapRef, { updatedAt: serverTimestamp() });
     };
 
+    const updateNodeVisibility = async (nodeId: string, hidden: boolean) => {
+        if (!user || !mapId) return;
+        const nodeRef = doc(db, "users", user.uid, "maps", mapId, "nodes", nodeId);
+        await updateDoc(nodeRef, { hidden });
+    };
+
     const deleteNode = async (nodeId: string) => {
         if (!user || !mapId) return;
 
@@ -175,6 +192,7 @@ export const useMindMap = (mapId: string | null) => {
         addNewEdge,
         updateNodePosition,
         updateNodeContent,
+        updateNodeVisibility,
         syncNode,
         setNodes,
         setEdges,
