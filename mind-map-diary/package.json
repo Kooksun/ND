@@ -1,0 +1,24 @@
+{
+  "name": "mind-map-diary",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "firebase": "^12.6.0",
+    "lucide-react": "^0.561.0",
+    "next": "16.0.10",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "reactflow": "^11.11.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
