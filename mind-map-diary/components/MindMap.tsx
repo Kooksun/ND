@@ -27,11 +27,22 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         addNode,
         addNewEdge,
         updateNodePosition,
-        updateNodeContent
+        updateNodeContent,
+        deleteNode
     } = useMindMap(mapId);
 
     const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
+
+    const handleDeleteNode = useCallback(async (nodeId: string) => {
+        // Confirmation is handled in DiaryEditor for button click,
+        // but for keyboard we might want a simple confirm or just do it.
+        // Let's rely on the caller to handle confirmation if needed.
+        await deleteNode(nodeId);
+        if (editingNodeId === nodeId) {
+            setEditingNodeId(null);
+        }
+    }, [deleteNode, editingNodeId]);
 
     const nodeTypes = useMemo(() => ({
         diary: DiaryNode,
@@ -106,6 +117,9 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                 onConnect={hookOnConnect}
                 onNodeDragStop={onNodeDragStop}
                 onNodeClick={onNodeClick}
+                onNodesDelete={(nodes) => {
+                    nodes.forEach(node => handleDeleteNode(node.id));
+                }}
                 nodeTypes={nodeTypes}
                 fitView
                 defaultViewport={defaultViewport}
@@ -139,6 +153,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                 isOpen={!!editingNodeId}
                 onClose={() => setEditingNodeId(null)}
                 onSave={handleSave}
+                onDelete={handleDeleteNode}
             />
         </div>
     );

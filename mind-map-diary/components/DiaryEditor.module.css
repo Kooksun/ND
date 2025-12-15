@@ -116,3 +116,27 @@
     background: #b2bec3;
     cursor: not-allowed;
 }
+
+.deleteBtn {
+    background: #ff7675;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+    margin-right: 12px;
+}
+
+.deleteBtn:hover {
+    background: #d63031;
+}
+
+.deleteBtn:disabled {
+    background: #b2bec3;
+    cursor: not-allowed;
+}

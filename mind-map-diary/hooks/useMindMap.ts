@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, deleteDoc, writeBatch, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Node, Edge, Connection, addEdge, NodeChange, applyNodeChanges, EdgeChange, applyEdgeChanges } from "reactflow";
@@ -22,10 +22,17 @@ export const useMindMap = (mapId: string | null) => {
         const edgesRef = collection(db, "users", user.uid, "maps", mapId, "edges");
 
         const unsubscribeNodes = onSnapshot(nodesRef, (snapshot) => {
-            const fetchedNodes = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as Node[];
+            const fetchedNodes = snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    data: {
+                        ...data.data,
+                        content: data.content
+                    }
+                };
+            }) as Node[];
             setNodes(fetchedNodes);
         });
 
@@ -116,6 +123,48 @@ export const useMindMap = (mapId: string | null) => {
         await updateDoc(mapRef, { updatedAt: serverTimestamp() });
     };
 
+    const deleteNode = async (nodeId: string) => {
+        if (!user || !mapId) return;
+
+        try {
+            const batch = writeBatch(db);
+
+            // 1. Delete the node
+            const nodeRef = doc(db, "users", user.uid, "maps", mapId, "nodes", nodeId);
+            batch.delete(nodeRef);
+
+            // 2. Find and delete connected edges
+            const edgesRef = collection(db, "users", user.uid, "maps", mapId, "edges");
+
+            // Query for edges where this node is the source
+            const sourceEdgesQuery = query(edgesRef, where("source", "==", nodeId));
+            const sourceEdgesSnapshot = await getDocs(sourceEdgesQuery);
+
+            sourceEdgesSnapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            // Query for edges where this node is the target
+            const targetEdgesQuery = query(edgesRef, where("target", "==", nodeId));
+            const targetEdgesSnapshot = await getDocs(targetEdgesQuery);
+
+            targetEdgesSnapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            // Commit the batch
+            await batch.commit();
+
+            // Update map timestamp
+            const mapRef = doc(db, "users", user.uid, "maps", mapId);
+            await updateDoc(mapRef, { updatedAt: serverTimestamp() });
+
+        } catch (error) {
+            console.error("Error deleting node:", error);
+            throw error;
+        }
+    };
+
     return {
         nodes,
         edges,
@@ -128,6 +177,7 @@ export const useMindMap = (mapId: string | null) => {
         updateNodeContent,
         syncNode,
         setNodes,
-        setEdges
+        setEdges,
+        deleteNode
     };
 };
