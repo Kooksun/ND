@@ -7,6 +7,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [title, setTitle] = useState(data.label || "");
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
+    const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
 
     useEffect(() => {
         setTitle(data.label || "");
@@ -17,6 +18,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     useEffect(() => {
         if (!selected) {
             setIsEditing(false);
+            setEditStartWidth(null);
         }
     }, [selected]);
 
@@ -37,14 +39,24 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         }
     }, [data, id]);
 
-    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
+        setEditStartWidth(e.currentTarget.offsetWidth);
         setIsEditing(true);
     }, []);
+
+    const TARGET_WIDTH = 320;
+    const editStyle = (isEditing && editStartWidth) ? {
+        width: `${TARGET_WIDTH}px`,
+        minWidth: `${TARGET_WIDTH}px`,
+        maxWidth: 'none',
+        marginLeft: `-${(TARGET_WIDTH - editStartWidth) / 2}px`
+    } : undefined;
 
     return (
         <div
             className={`${styles.diaryNode} ${isEditing ? styles.editing : ''} ${selected ? styles.selected : ''}`}
+            style={editStyle}
             onDoubleClick={handleDoubleClick}
         >
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
