@@ -12,7 +12,6 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { useMindMap } from "@/hooks/useMindMap";
 import DiaryNode from "./DiaryNode";
-import DiaryEditor from "./DiaryEditor";
 import { Plus } from "lucide-react";
 
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
@@ -31,7 +30,6 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         deleteNode
     } = useMindMap(mapId);
 
-    const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
 
     const handleDeleteNode = useCallback(async (nodeId: string) => {
@@ -39,10 +37,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         // but for keyboard we might want a simple confirm or just do it.
         // Let's rely on the caller to handle confirmation if needed.
         await deleteNode(nodeId);
-        if (editingNodeId === nodeId) {
-            setEditingNodeId(null);
-        }
-    }, [deleteNode, editingNodeId]);
+    }, [deleteNode]);
 
     const nodeTypes = useMemo(() => ({
         diary: DiaryNode,
@@ -77,20 +72,12 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
             type: 'diary',
             data: {
                 ...node.data,
-                onAddChild: () => handleAddNode(node.id, node.position)
+                onAddChild: () => handleAddNode(node.id, node.position),
+                onUpdateContent: updateNodeContent,
+                onDelete: handleDeleteNode
             }
         }));
-    }, [nodes, handleAddNode]);
-
-    const onNodeClick = useCallback((event: any, node: Node) => {
-        setEditingNodeId(node.id);
-    }, []);
-
-    const handleSave = async (id: string, title: string, content: string) => {
-        await updateNodeContent(id, title, content);
-    };
-
-    const editingNode = useMemo(() => nodes.find(n => n.id === editingNodeId) || null, [nodes, editingNodeId]);
+    }, [nodes, handleAddNode, updateNodeContent, handleDeleteNode]);
 
     const onNodeDragStop = useCallback((event: any, node: Node) => {
         updateNodePosition(node.id, node.position);
@@ -116,7 +103,6 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                 onEdgesChange={hookOnEdgesChange}
                 onConnect={hookOnConnect}
                 onNodeDragStop={onNodeDragStop}
-                onNodeClick={onNodeClick}
                 onNodesDelete={(nodes) => {
                     nodes.forEach(node => handleDeleteNode(node.id));
                 }}
@@ -148,13 +134,6 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                     </Panel>
                 )}
             </ReactFlow>
-            <DiaryEditor
-                node={editingNode}
-                isOpen={!!editingNodeId}
-                onClose={() => setEditingNodeId(null)}
-                onSave={handleSave}
-                onDelete={handleDeleteNode}
-            />
         </div>
     );
 }
