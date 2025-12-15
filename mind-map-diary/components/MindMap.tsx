@@ -17,7 +17,7 @@ import { Plus } from "lucide-react";
 
 const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
-function MindMapContent() {
+function MindMapContent({ mapId }: { mapId: string | null }) {
     const {
         nodes,
         edges,
@@ -28,7 +28,7 @@ function MindMapContent() {
         addNewEdge,
         updateNodePosition,
         updateNodeContent
-    } = useMindMap();
+    } = useMindMap(mapId);
 
     const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
@@ -85,6 +85,17 @@ function MindMapContent() {
         updateNodePosition(node.id, node.position);
     }, [updateNodePosition]);
 
+    if (!mapId) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-500">
+                <div className="text-center">
+                    <h3 className="text-xl font-medium mb-2">지도를 선택해주세요</h3>
+                    <p>왼쪽 메뉴에서 페이지를 선택하거나 새로 만들어보세요.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={{ width: "100%", height: "100%" }}>
             <ReactFlow
@@ -133,10 +144,10 @@ function MindMapContent() {
     );
 }
 
-export default function MindMap() {
+export default function MindMap({ mapId }: { mapId: string | null }) {
     return (
         <ReactFlowProvider>
-            <MindMapContent />
+            <MindMapContent mapId={mapId} />
         </ReactFlowProvider>
     );
 }
