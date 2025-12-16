@@ -56,7 +56,8 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
             // 1. Find all existing siblings (children of this parent)
             const childEdges = edges.filter(e => e.source === parentId);
             const childIds = new Set(childEdges.map(e => e.target));
-            const siblings = nodes.filter(n => childIds.has(n.id));
+            // Only consider visible siblings for collision detection
+            const siblings = nodes.filter(n => childIds.has(n.id) && !n.hidden);
 
             // 2. Search for the nearest free slot
             // Slots: 0 (center), 1 (right), -1 (left), 2, -2, etc.
