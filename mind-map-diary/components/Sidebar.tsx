@@ -1,8 +1,8 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map, Trash2, Edit2 } from "lucide-react";
-import { useState } from "react";
+import { Plus, Map, Trash2, Edit2, PanelLeft } from "lucide-react";
+import { useState, useEffect } from "react";
 import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
@@ -16,8 +16,27 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
     const [editingMapId, setEditingMapId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [hoveredMapId, setHoveredMapId] = useState<string | null>(null);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Auto-collapse on mobile devices
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                setIsCollapsed(true);
+            } else {
+                setIsCollapsed(false);
+            }
+        };
+
+        // Set initial state
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleEditStart = (map: MapData) => {
+        if (isCollapsed) return; // Prevent editing in collapsed mode
         setEditingMapId(map.id);
         setEditTitle(map.title);
     };
@@ -37,12 +56,22 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
-    if (loading) return <div style={{ width: 250, padding: 20 }}>Loading...</div>;
+    if (loading) return <div style={{ width: isCollapsed ? 60 : 250, padding: 20 }}>...</div>;
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${isCollapsed ? styles.collapsed : ''}`}>
             <div className={styles.header}>
-                <h2 className={styles.title}>내 다이어리</h2>
+                <div className={styles.headerTop}>
+                    {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className={styles.toggleButton}
+                        title={isCollapsed ? "펼치기" : "접기"}
+                    >
+                        {isCollapsed ? <PanelLeft size={20} /> : <PanelLeft size={20} />}
+                    </button>
+                </div>
+
                 <div className={styles.buttonGroup}>
                     <button
                         onClick={() => onNewMap('blank')}
@@ -50,16 +79,16 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                         title="빈 페이지"
                     >
                         <Plus size={18} />
-                        <span>새 페이지</span>
+                        <span className={styles.buttonText}>새 페이지</span>
                     </button>
                     <button
                         onClick={() => onNewMap('daily')}
                         className={`${styles.newButton} ${styles.dailyButton}`}
                         title="데일리 모드"
-                        style={{ marginLeft: '5px', backgroundColor: '#e17055' }}
+                        style={isCollapsed ? { marginTop: '5px', backgroundColor: '#e17055' } : { marginLeft: '5px', backgroundColor: '#e17055' }}
                     >
                         <Plus size={18} />
-                        <span>데일리</span>
+                        <span className={styles.buttonText}>데일리</span>
                     </button>
                 </div>
             </div>
@@ -73,26 +102,29 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                             onClick={() => onSelectMap(map.id)}
                             onMouseEnter={() => setHoveredMapId(map.id)}
                             onMouseLeave={() => setHoveredMapId(null)}
+                            title={isCollapsed ? map.title : undefined}
                         >
                             <div className={styles.itemLeft}>
                                 <Map size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
-                                {editingMapId === map.id ? (
-                                    <input
-                                        type="text"
-                                        value={editTitle}
-                                        onChange={(e) => setEditTitle(e.target.value)}
-                                        onBlur={() => handleEditSave(map.id)}
-                                        onKeyDown={(e) => handleKeyDown(e, map.id)}
-                                        className={styles.input}
-                                        autoFocus
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                ) : (
-                                    <span className={styles.mapTitle}>{map.title}</span>
+                                {!isCollapsed && (
+                                    editingMapId === map.id ? (
+                                        <input
+                                            type="text"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            onBlur={() => handleEditSave(map.id)}
+                                            onKeyDown={(e) => handleKeyDown(e, map.id)}
+                                            className={styles.input}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <span className={styles.mapTitle}>{map.title}</span>
+                                    )
                                 )}
                             </div>
 
-                            {(hoveredMapId === map.id || currentMapId === map.id) && (
+                            {!isCollapsed && (hoveredMapId === map.id || currentMapId === map.id) && (
                                 <div className={styles.actions}>
                                     <button
                                         onClick={(e) => {

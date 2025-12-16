@@ -7,18 +7,60 @@
     flex-direction: column;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
     z-index: 20;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    /* Added to hide overflow content during transition */
+}
+
+.container.collapsed {
+    width: 60px;
 }
 
 .header {
     padding: 20px;
     border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.headerTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 24px;
 }
 
 .title {
     font-size: 1.2rem;
     font-weight: bold;
     color: #2d3436;
-    margin-bottom: 15px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.container.collapsed .title {
+    display: none;
+    opacity: 0;
+}
+
+.toggleButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #636e72;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.toggleButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .buttonGroup {
@@ -27,6 +69,10 @@
     align-items: center;
     width: 100%;
     gap: 5px;
+}
+
+.container.collapsed .buttonGroup {
+    flex-direction: column;
 }
 
 .newButton {
@@ -43,8 +89,22 @@
     border: none;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
     white-space: nowrap;
+    overflow: hidden;
+}
+
+.container.collapsed .newButton {
+    padding: 10px;
+    width: 100%;
+}
+
+.buttonText {
+    display: inline-block;
+}
+
+.container.collapsed .buttonText {
+    display: none;
 }
 
 .dailyButton:hover {
@@ -60,6 +120,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    overflow-x: hidden;
 }
 
 .listContent {
@@ -77,6 +138,12 @@
     cursor: pointer;
     color: #636e72;
     transition: all 0.2s;
+    min-height: 40px;
+}
+
+.container.collapsed .item {
+    padding: 10px;
+    justify-content: center;
 }
 
 .item:hover {
@@ -97,12 +164,24 @@
     flex: 1;
 }
 
+.container.collapsed .itemLeft {
+    justify-content: center;
+    gap: 0;
+}
+
 .mapTitle {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 0.9rem;
     font-weight: 500;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.container.collapsed .mapTitle {
+    display: none;
+    opacity: 0;
 }
 
 .input {
@@ -111,6 +190,10 @@
     border-radius: 4px;
     padding: 2px 4px;
     font-size: 0.9rem;
+}
+
+.container.collapsed .input {
+    display: none;
 }
 
 .input:focus {
@@ -122,6 +205,10 @@
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+.container.collapsed .actions {
+    display: none;
 }
 
 .actionButton {
