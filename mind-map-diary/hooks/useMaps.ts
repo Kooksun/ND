@@ -6,8 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface MapData {
     id: string;
     title: string;
-    createdAt: any;
-    updatedAt: any;
+    createdAt?: any;
+    updatedAt?: any;
+    type?: 'blank' | 'daily' | string;
 }
 
 export const useMaps = () => {

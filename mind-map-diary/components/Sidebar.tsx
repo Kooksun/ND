@@ -1,7 +1,7 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree } from "lucide-react";
+import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Sidebar.module.css";
@@ -21,6 +21,12 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
     const [hoveredMapId, setHoveredMapId] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [summarizingMapId, setSummarizingMapId] = useState<string | null>(null);
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    });
+    const [isDateSummarizing, setIsDateSummarizing] = useState(false);
 
     // Auto-collapse on mobile devices
     useEffect(() => {
@@ -85,6 +91,112 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
+    const toDateValue = (value: any) => {
+        if (!value) return null;
+        if (value instanceof Date) return value;
+        if (typeof value === "string") {
+            const parsed = new Date(value);
+            return isNaN(parsed.getTime()) ? null : parsed;
+        }
+        if (typeof value.toDate === "function") return value.toDate();
+        if (value.seconds) return new Date(value.seconds * 1000);
+        return null;
+    };
+
+    const formatDateKey = (date: Date) => {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    };
+
+    const extractDateFromTitle = (title?: string) => {
+        if (!title) return null;
+        const match = title.match(/(\d{2,4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+        if (!match) return null;
+        const rawYear = Number(match[1]);
+        const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+        const month = Number(match[2]) - 1;
+        const day = Number(match[3]);
+        const candidate = new Date(year, month, day);
+        return isNaN(candidate.getTime()) ? null : candidate;
+    };
+
+    const getMapDateKey = (map: MapData) => {
+        const createdAtDate = toDateValue(map.createdAt);
+        if (createdAtDate) return formatDateKey(createdAtDate);
+        const updatedAtDate = toDateValue(map.updatedAt);
+        if (updatedAtDate) return formatDateKey(updatedAtDate);
+        const titleDate = extractDateFromTitle(map.title);
+        return titleDate ? formatDateKey(titleDate) : null;
+    };
+
+    const isDailyMap = (map: MapData) => {
+        if (map.type === "daily") return true;
+        return /일의 기록/.test(map.title || "");
+    };
+
+    const findMapsByDate = (dateKey: string) => {
+        return maps.filter((map) => isDailyMap(map) && getMapDateKey(map) === dateKey);
+    };
+
+    const getMapTimestamp = (map: MapData) => {
+        const updated = toDateValue(map.updatedAt);
+        const created = toDateValue(map.createdAt);
+        if (updated) return updated.getTime();
+        if (created) return created.getTime();
+        return 0;
+    };
+
+    const handleViewByDate = () => {
+        if (!selectedDate) return;
+        const matches = findMapsByDate(selectedDate);
+        if (matches.length === 0) {
+            alert("선택한 날짜의 데일리 기록이 없습니다.");
+            return;
+        }
+        const latest = [...matches].sort((a, b) => getMapTimestamp(b) - getMapTimestamp(a))[0];
+        onSelectMap(latest.id);
+        setIsDateModalOpen(false);
+        setIsCollapsed(false);
+    };
+
+    const handleSummarizeByDate = async () => {
+        if (!user || !selectedDate) return;
+        const matches = findMapsByDate(selectedDate);
+        if (matches.length === 0) {
+            alert("선택한 날짜의 데일리 기록이 없습니다.");
+            return;
+        }
+        setIsDateSummarizing(true);
+        try {
+            const ordered = [...matches].sort((a, b) => getMapTimestamp(a) - getMapTimestamp(b));
+            const summaries: string[] = [];
+
+            for (const map of ordered) {
+                const summaryBody = await buildMarkdownSummary(user.uid, map.id);
+                if (!summaryBody || summaryBody.trim().length === 0) continue;
+                const title = map.title || "제목 없음";
+                summaries.push(`# ${title}\n\n${summaryBody}`);
+            }
+
+            if (summaries.length === 0) {
+                alert("요약할 노드가 없습니다.");
+                return;
+            }
+
+            const combined = summaries.join("\n\n");
+            try {
+                await navigator.clipboard.writeText(combined);
+                alert(`선택한 날짜(${selectedDate})의 정리 내용을 클립보드에 복사했어요.\n\n${combined}`);
+            } catch {
+                alert(`선택한 날짜(${selectedDate})의 정리 내용입니다.\n\n${combined}`);
+            }
+        } catch (error) {
+            console.error("Failed to summarize maps by date:", error);
+            alert("요약을 불러오지 못했습니다. 다시 시도해주세요.");
+        } finally {
+            setIsDateSummarizing(false);
+        }
+    };
+
     if (loading) return <div style={{ width: isCollapsed ? 60 : 250, padding: 20 }}>...</div>;
 
     return (
@@ -92,13 +204,22 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             <div className={styles.header}>
                 <div className={styles.headerTop}>
                     {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
-                    <button
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                        className={styles.toggleButton}
-                        title={isCollapsed ? "펼치기" : "접기"}
-                    >
-                        {isCollapsed ? <PanelLeft size={20} /> : <PanelLeft size={20} />}
-                    </button>
+                    <div className={styles.headerActions}>
+                        <button
+                            onClick={() => setIsDateModalOpen(true)}
+                            className={styles.iconButton}
+                            title="날짜로 이동"
+                        >
+                            <CalendarDays size={18} />
+                        </button>
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className={styles.toggleButton}
+                            title={isCollapsed ? "펼치기" : "접기"}
+                        >
+                            {isCollapsed ? <PanelLeft size={20} /> : <PanelLeft size={20} />}
+                        </button>
+                    </div>
                 </div>
 
                 <div className={styles.buttonGroup}>
@@ -219,6 +340,57 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                     ))}
                 </div>
             </div>
+
+            {isDateModalOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsDateModalOpen(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div className={styles.modalTitle}>날짜 선택</div>
+                            <button
+                                onClick={() => setIsDateModalOpen(false)}
+                                className={styles.iconButton}
+                                title="닫기"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <label className={styles.modalLabel} htmlFor="date-picker">달력에서 날짜를 선택하세요</label>
+                            <input
+                                id="date-picker"
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.modalActionButton}
+                                onClick={handleViewByDate}
+                                disabled={!selectedDate}
+                            >
+                                보기
+                            </button>
+                            <button
+                                className={styles.modalActionButton}
+                                onClick={handleSummarizeByDate}
+                                disabled={!selectedDate || isDateSummarizing}
+                                style={{ backgroundColor: "#6c5ce7" }}
+                            >
+                                {isDateSummarizing ? "정리 중..." : "정리"}
+                            </button>
+                            <button
+                                className={styles.modalActionButton}
+                                onClick={() => setIsDateModalOpen(false)}
+                                style={{ backgroundColor: "#b2bec3", color: "#2d3436" }}
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

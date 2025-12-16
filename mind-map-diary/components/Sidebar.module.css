@@ -13,7 +13,7 @@
 }
 
 .container.collapsed {
-    width: 60px;
+    width: 80px;
 }
 
 .header {
@@ -24,11 +24,21 @@
     gap: 15px;
 }
 
+.container.collapsed .header {
+    padding: 12px 10px;
+}
+
 .headerTop {
     display: flex;
     align-items: center;
     justify-content: space-between;
     min-height: 24px;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .title {
@@ -61,6 +71,25 @@
 
 .toggleButton:hover {
     background-color: rgba(0, 0, 0, 0.05);
+}
+
+.iconButton {
+    background: none;
+    border: 1px solid #e1e1e1;
+    cursor: pointer;
+    color: #2d3436;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    min-width: 32px;
+}
+
+.iconButton:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .buttonGroup {
@@ -309,4 +338,82 @@
 .actionButton:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+}
+
+.modal {
+    background: white;
+    width: min(420px, 100%);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modalTitle {
+    font-weight: 700;
+    color: #2d3436;
+}
+
+.modalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.modalLabel {
+    font-size: 0.9rem;
+    color: #636e72;
+}
+
+.dateInput {
+    padding: 10px 12px;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #2d3436;
+}
+
+.modalActions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.modalActionButton {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background-color: #0984e3;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s ease;
+}
+
+.modalActionButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.modalActionButton:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
