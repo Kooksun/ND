@@ -8,6 +8,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
     const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
+    const hasConnections = !!data.hasConnections;
 
     useEffect(() => {
         setTitle(data.label || "");
@@ -54,13 +55,35 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         marginLeft: `-${(TARGET_WIDTH - editStartWidth) / 2}px`
     } : undefined;
 
+    const handleStyle = hasConnections ? undefined : { visibility: 'hidden', pointerEvents: 'none' };
+
     return (
         <div
             className={`${styles.diaryNode} ${isEditing ? styles.editing : ''} ${selected ? styles.selected : ''}`}
             style={editStyle}
             onDoubleClick={handleDoubleClick}
         >
-            <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
+            <Handle
+                id="target-top"
+                type="target"
+                position={Position.Top}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
+            <Handle
+                id="target-left"
+                type="target"
+                position={Position.Left}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
+            <Handle
+                id="target-right"
+                type="target"
+                position={Position.Right}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
 
             <div className={styles.content}>
                 {isEditing ? (
@@ -109,7 +132,27 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                 )}
             </div>
 
-            <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
+            <Handle
+                id="source-bottom"
+                type="source"
+                position={Position.Bottom}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
+            <Handle
+                id="source-left"
+                type="source"
+                position={Position.Left}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
+            <Handle
+                id="source-right"
+                type="source"
+                position={Position.Right}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
         </div>
     );
 };

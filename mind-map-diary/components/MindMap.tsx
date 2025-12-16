@@ -111,17 +111,67 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
 
     // Extended nodes with handlers
     const extendedNodes = useMemo(() => {
+        const hasConnections = new Map<string, boolean>();
+        edges.forEach(edge => {
+            hasConnections.set(edge.source, true);
+            hasConnections.set(edge.target, true);
+        });
+
         return nodes.map(node => ({
             ...node,
             type: 'diary',
             data: {
                 ...node.data,
+                hasConnections: hasConnections.get(node.id) ?? false,
                 onAddChild: () => handleAddNode(node.id, node.position),
                 onUpdateContent: updateNodeContent,
                 onDelete: handleDeleteNode
             }
         }));
     }, [nodes, handleAddNode, updateNodeContent, handleDeleteNode]);
+
+    const edgesWithAutoHandles = useMemo(() => {
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+        return edges.map(edge => {
+            if (edge.sourceHandle && edge.targetHandle) {
+                return edge;
+            }
+
+            const sourceNode = nodeMap.get(edge.source);
+            const targetNode = nodeMap.get(edge.target);
+
+            if (!sourceNode || !targetNode) return edge;
+
+            const dx = targetNode.position.x - sourceNode.position.x;
+            const dy = targetNode.position.y - sourceNode.position.y;
+
+            let sourceHandle = edge.sourceHandle;
+            let targetHandle = edge.targetHandle;
+
+            const horizontalBias = Math.abs(dx) > Math.abs(dy) * 1.5; // need noticeably more horizontal distance
+
+            if (horizontalBias) {
+                if (dx > 0) {
+                    sourceHandle ??= 'source-right';
+                    targetHandle ??= 'target-left';
+                } else {
+                    sourceHandle ??= 'source-left';
+                    targetHandle ??= 'target-right';
+                }
+            } else {
+                if (dy > 0) {
+                    sourceHandle ??= 'source-bottom';
+                    targetHandle ??= 'target-top';
+                } else {
+                    sourceHandle ??= 'source-top';
+                    targetHandle ??= 'target-bottom';
+                }
+            }
+
+            return { ...edge, sourceHandle, targetHandle };
+        });
+    }, [edges, nodes]);
 
     const onNodeDragStop = useCallback((event: any, node: Node) => {
         updateNodePosition(node.id, node.position);
@@ -175,7 +225,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         <div style={{ width: "100%", height: "100%" }}>
             <ReactFlow
                 nodes={extendedNodes}
-                edges={edges}
+                edges={edgesWithAutoHandles}
                 onNodesChange={hookOnNodesChange}
                 onEdgesChange={hookOnEdgesChange}
                 onConnect={hookOnConnect}
