@@ -119,7 +119,20 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                             onClick={(e) => e.stopPropagation()}
                                         />
                                     ) : (
-                                        <span className={styles.mapTitle}>{map.title}</span>
+                                        <div className={styles.mapTitleWrapper}>
+                                            {currentMapId === map.id ? (
+                                                <div className={styles.tickerTrack}>
+                                                    <div className={styles.tickerSequence}>
+                                                        <span className={styles.tickerText}>{map.title}</span>
+                                                    </div>
+                                                    <div className={styles.tickerSequence}>
+                                                        <span className={styles.tickerText}>{map.title}</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className={styles.mapTitle}>{map.title}</span>
+                                            )}
+                                        </div>
                                     )
                                 )}
                             </div>

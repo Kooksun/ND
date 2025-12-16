@@ -179,6 +179,64 @@
     transition: opacity 0.2s;
 }
 
+.mapTitleWrapper {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.tickerTrack {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    animation: ticker 14s linear infinite;
+}
+
+.tickerSequence {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding-right: 32px;
+}
+
+.tickerText {
+    white-space: nowrap;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.itemActive .tickerText {
+    color: #0984e3;
+}
+
+@keyframes ticker {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.item:hover .tickerTrack,
+.itemActive .tickerTrack {
+    animation-play-state: running;
+}
+
+.item:not(.itemActive) .tickerTrack {
+    animation: none;
+}
+
+.container.collapsed .mapTitleWrapper {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tickerTrack {
+        animation: none;
+    }
+}
+
 .container.collapsed .mapTitle {
     display: none;
     opacity: 0;
