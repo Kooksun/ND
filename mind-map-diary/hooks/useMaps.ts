@@ -135,9 +135,7 @@ export const useMaps = () => {
 
     const deleteMap = async (mapId: string) => {
         if (!user) return;
-        if (confirm("정말로 이 지도를 삭제하시겠습니까?")) {
-            await deleteDoc(doc(db, "users", user.uid, "maps", mapId));
-        }
+        await deleteDoc(doc(db, "users", user.uid, "maps", mapId));
     }
 
     return {

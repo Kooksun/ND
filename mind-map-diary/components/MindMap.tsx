@@ -122,8 +122,7 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         return (
             <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-500">
                 <div className="text-center">
-                    <h3 className="text-xl font-medium mb-2">지도를 선택해주세요</h3>
-                    <p>왼쪽 메뉴에서 페이지를 선택하거나 새로 만들어보세요.</p>
+                    <h3 className="text-xl font-medium mb-2"></h3>
                 </div>
             </div>
         );

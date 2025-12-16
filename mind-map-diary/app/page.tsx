@@ -23,7 +23,7 @@ export default function Home() {
     if (!currentMapId && maps.length > 0) {
       setCurrentMapId(maps[0].id);
     }
-  }, [maps, currentMapId]);
+  }, [maps]);
 
   const handleNewMap = async (type: 'blank' | 'daily' = 'blank') => {
     const newId = await createMap(undefined, type);
@@ -57,7 +57,7 @@ export default function Home() {
             {maps.find(m => m.id === currentMapId)?.title || "Mind Map Diary"}
           </h1>
         </div>
-        <MindMap mapId={currentMapId} />
+        <MindMap mapId={currentMapId} key={currentMapId || "empty"} />
       </div>
     </main>
   );

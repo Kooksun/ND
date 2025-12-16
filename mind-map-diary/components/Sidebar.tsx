@@ -7,7 +7,7 @@ import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
     currentMapId: string | null;
-    onSelectMap: (mapId: string) => void;
+    onSelectMap: (mapId: string | null) => void;
     onNewMap: (type: 'blank' | 'daily') => void;
 }
 
@@ -106,7 +106,19 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            deleteMap(map.id);
+                                            if (confirm("정말 삭제하시겠습니까?")) {
+                                                if (currentMapId === map.id) {
+                                                    const currentIndex = maps.findIndex(m => m.id === map.id);
+                                                    let nextMapId = null;
+                                                    if (currentIndex < maps.length - 1) {
+                                                        nextMapId = maps[currentIndex + 1].id;
+                                                    } else if (currentIndex > 0) {
+                                                        nextMapId = maps[currentIndex - 1].id;
+                                                    }
+                                                    onSelectMap(nextMapId);
+                                                }
+                                                deleteMap(map.id);
+                                            }
                                         }}
                                         className={styles.actionButton}
                                         style={{ color: '#d63031' }}

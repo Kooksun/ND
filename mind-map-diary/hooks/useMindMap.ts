@@ -21,6 +21,10 @@ export const useMindMap = (mapId: string | null) => {
         const nodesRef = collection(db, "users", user.uid, "maps", mapId, "nodes");
         const edgesRef = collection(db, "users", user.uid, "maps", mapId, "edges");
 
+        // Clear previous state immediately to avoid showing stale data during loading
+        setNodes([]);
+        setEdges([]);
+
         const unsubscribeNodes = onSnapshot(nodesRef, (snapshot) => {
             const fetchedNodes = snapshot.docs.map((doc) => {
                 const data = doc.data();
