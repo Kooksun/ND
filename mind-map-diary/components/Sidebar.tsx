@@ -106,6 +106,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                         onClick={() => onNewMap('blank')}
                         className={styles.newButton}
                         title="빈 페이지"
+                        data-tooltip={isCollapsed ? "새 페이지" : undefined}
                     >
                         <Plus size={18} />
                         <span className={styles.buttonText}>새 페이지</span>
@@ -115,6 +116,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                         className={`${styles.newButton} ${styles.dailyButton}`}
                         title="데일리 모드"
                         style={isCollapsed ? { marginTop: '5px', backgroundColor: '#e17055' } : { marginLeft: '5px', backgroundColor: '#e17055' }}
+                        data-tooltip={isCollapsed ? "데일리 모드" : undefined}
                     >
                         <Plus size={18} />
                         <span className={styles.buttonText}>데일리</span>
@@ -132,6 +134,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                             onMouseEnter={() => setHoveredMapId(map.id)}
                             onMouseLeave={() => setHoveredMapId(null)}
                             title={isCollapsed ? map.title : undefined}
+                            data-tooltip={isCollapsed ? map.title : undefined}
                         >
                             <div className={styles.itemLeft}>
                                 <MapIcon size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
