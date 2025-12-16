@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Plus, Trash2, Check } from 'lucide-react';
 import styles from './DiaryNode.module.css';
@@ -56,7 +56,9 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         marginLeft: `-${(TARGET_WIDTH - editStartWidth) / 2}px`
     } : undefined;
 
-    const handleStyle = hasConnections ? undefined : { visibility: 'hidden', pointerEvents: 'none' };
+    const handleStyle: CSSProperties | undefined = hasConnections
+        ? undefined
+        : { visibility: 'hidden', pointerEvents: 'none' };
 
     return (
         <div
