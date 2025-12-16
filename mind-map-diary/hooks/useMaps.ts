@@ -84,18 +84,18 @@ export const useMaps = () => {
                 });
 
                 // 2. Child Nodes: "Worked", "Studied", "Played Games"
-                // Using hardcoded positions for now, relative to root (0,0)
+                // Distributed horizontally below the root (0,0)
                 const children = [
-                    { label: "일을 했다", y: -100, color: '#ff7675' },
-                    { label: "공부를 했다", y: 0, color: '#74b9ff' },
-                    { label: "게임을 했다", y: 100, color: '#55efc4' }
+                    { label: "일을 했다", x: -180, color: '#ff7675' },
+                    { label: "공부를 했다", x: 0, color: '#74b9ff' },
+                    { label: "게임을 했다", x: 180, color: '#55efc4' }
                 ];
 
                 children.forEach((child) => {
                     const childNodeRef = doc(nodesCollection);
                     batch.set(childNodeRef, {
                         label: child.label,
-                        position: { x: 300, y: child.y },
+                        position: { x: child.x, y: 130 },
                         data: {
                             label: child.label,
                             isChoice: true, // Special flag for choice nodes
