@@ -1,9 +1,11 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map, Trash2, Edit2, PanelLeft } from "lucide-react";
+import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Sidebar.module.css";
+import { buildMarkdownSummary } from "@/lib/summarizeMap";
 
 interface SidebarProps {
     currentMapId: string | null;
@@ -13,10 +15,12 @@ interface SidebarProps {
 
 export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
     const { maps, loading, deleteMap, updateMapTitle } = useMaps();
+    const { user } = useAuth();
     const [editingMapId, setEditingMapId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [hoveredMapId, setHoveredMapId] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [summarizingMapId, setSummarizingMapId] = useState<string | null>(null);
 
     // Auto-collapse on mobile devices
     useEffect(() => {
@@ -53,6 +57,31 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             handleEditSave(mapId);
         } else if (e.key === 'Escape') {
             setEditingMapId(null);
+        }
+    };
+
+    const summarizeMap = async (mapId: string, mapTitle: string) => {
+        if (!user) return;
+        setSummarizingMapId(mapId);
+        try {
+            const summaryBody = await buildMarkdownSummary(user.uid, mapId);
+            if (!summaryBody || summaryBody.trim().length === 0) {
+                alert("요약할 노드가 없습니다.");
+                return;
+            }
+            const summaryText = `# ${mapTitle}\\n\\n${summaryBody}`;
+
+            try {
+                await navigator.clipboard.writeText(summaryText);
+                alert(`${mapTitle} 정리 내용을 클립보드에 복사했어요.\\n${summaryText}`);
+            } catch {
+                alert(`${mapTitle} 정리 내용입니다.\\n${summaryText}`);
+            }
+        } catch (error) {
+            console.error("Failed to summarize map:", error);
+            alert("요약을 불러오지 못했습니다. 다시 시도해주세요.");
+        } finally {
+            setSummarizingMapId(null);
         }
     };
 
@@ -105,7 +134,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                             title={isCollapsed ? map.title : undefined}
                         >
                             <div className={styles.itemLeft}>
-                                <Map size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
+                                <MapIcon size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
                                 {!isCollapsed && (
                                     editingMapId === map.id ? (
                                         <input
@@ -147,6 +176,17 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                         className={styles.actionButton}
                                     >
                                         <Edit2 size={12} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            summarizeMap(map.id, map.title);
+                                        }}
+                                        className={styles.actionButton}
+                                        disabled={summarizingMapId === map.id}
+                                        title="정리 보기"
+                                    >
+                                        <ListTree size={12} />
                                     </button>
                                     <button
                                         onClick={(e) => {

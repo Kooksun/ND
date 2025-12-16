@@ -44,10 +44,10 @@ export const useMaps = () => {
 
             if (!title) {
                 const now = new Date();
-                const dateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일의 기록`;
-
-                // Add suffix for Daily Mode to distinguish
-                const baseTitle = type === 'daily' ? `${dateStr} (데일리)` : dateStr;
+                const yy = String(now.getFullYear()).slice(-2);
+                const baseTitle = type === 'daily'
+                    ? `${yy}년 ${now.getMonth() + 1}월 ${now.getDate()}일의 기록`
+                    : "제목 없음";
 
                 // Check for duplicates
                 let candidateTitle = baseTitle;
