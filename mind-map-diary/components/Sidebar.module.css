@@ -41,6 +41,26 @@
     gap: 6px;
 }
 
+.logoutButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid #e1e1e1;
+    color: #d63031;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.logoutButton:hover {
+    background-color: #fff5f5;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    color: #c0392b;
+}
+
 .title {
     font-size: 1.2rem;
     font-weight: bold;

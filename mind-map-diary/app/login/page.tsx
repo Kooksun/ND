@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
-    const { user, login, loginWithEmail, signupWithEmail, loading } = useAuth();
+    const { user, loginWithEmail, signupWithEmail, loading } = useAuth();
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -80,13 +80,6 @@ export default function LoginPage() {
                         {isLogin ? "이메일로 로그인" : "이메일로 회원가입"}
                     </button>
                 </form>
-
-                <div style={{ width: '100%', height: '1px', backgroundColor: '#eee', margin: '20px 0' }}></div>
-
-                <button className={styles.button} onClick={login} style={{ backgroundColor: '#fff', color: '#757575', border: '1px solid #ddd' }}>
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: '18px', marginRight: '10px', verticalAlign: 'middle' }} />
-                    <span style={{ verticalAlign: 'middle' }}>Google 계정으로 시작하기</span>
-                </button>
 
                 <p style={{ marginTop: '20px', fontSize: '0.9rem', cursor: 'pointer', color: '#666', textDecoration: 'underline' }} onClick={() => { setIsLogin(!isLogin); setError(""); }}>
                     {isLogin ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}

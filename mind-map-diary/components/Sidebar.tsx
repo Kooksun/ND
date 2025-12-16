@@ -1,7 +1,7 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X } from "lucide-react";
+import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Sidebar.module.css";
@@ -15,7 +15,7 @@ interface SidebarProps {
 
 export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
     const { maps, loading, deleteMap, updateMapTitle } = useMaps();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [editingMapId, setEditingMapId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [hoveredMapId, setHoveredMapId] = useState<string | null>(null);
@@ -197,6 +197,16 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
+    const handleLogout = async () => {
+        if (!confirm("정말 로그아웃하시겠습니까?")) return;
+        try {
+            await logout();
+        } catch (error) {
+            console.error("Failed to logout:", error);
+            alert("로그아웃에 실패했습니다. 다시 시도해주세요.");
+        }
+    };
+
     if (loading) return <div style={{ width: isCollapsed ? 60 : 250, padding: 20 }}>...</div>;
 
     return (
@@ -205,6 +215,15 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                 <div className={styles.headerTop}>
                     {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
                     <div className={styles.headerActions}>
+                        {!isCollapsed && (
+                            <button
+                                onClick={handleLogout}
+                                className={styles.logoutButton}
+                                title="로그아웃"
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        )}
                         <button
                             onClick={() => setIsDateModalOpen(true)}
                             className={styles.iconButton}
