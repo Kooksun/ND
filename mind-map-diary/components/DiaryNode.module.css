@@ -6,8 +6,8 @@
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-    min-width: 160px;
-    max-width: 240px;
+    width: 160px;
+    min-height: 80px;
     text-align: center;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
@@ -47,14 +47,17 @@
     font-weight: 600;
     font-size: 0.95rem;
     color: #2d3436;
-    margin-bottom: 4px;
+    margin-bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .titleInput {
     width: 100%;
     font-size: 1.1rem;
-    font-weight: 700;
-    padding: 4px 8px;
+    font-weight: 600;
+    padding: 4px;
     border: none;
     border-bottom: 2px solid #dfe6e9;
     border-radius: 4px;
@@ -147,18 +150,21 @@
 }
 
 .addBtn {
-    margin-top: auto;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
     background: #dfe6e9;
     color: #636e72;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .addBtn:hover {
