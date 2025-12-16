@@ -8,7 +8,8 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
     const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
-    const hasConnections = !!data.hasConnections;
+    const connectedEdgeCount = data.connectedEdgeCount ?? (data.hasConnections ? 1 : 0);
+    const hasConnections = connectedEdgeCount > 0;
 
     useEffect(() => {
         setTitle(data.label || "");
@@ -84,6 +85,13 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                 isConnectable={isConnectable}
                 style={handleStyle}
             />
+            <Handle
+                id="source-top"
+                type="source"
+                position={Position.Top}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
 
             <div className={styles.content}>
                 {isEditing ? (
@@ -135,6 +143,13 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
             <Handle
                 id="source-bottom"
                 type="source"
+                position={Position.Bottom}
+                isConnectable={isConnectable}
+                style={handleStyle}
+            />
+            <Handle
+                id="target-bottom"
+                type="target"
                 position={Position.Bottom}
                 isConnectable={isConnectable}
                 style={handleStyle}

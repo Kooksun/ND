@@ -111,24 +111,29 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
 
     // Extended nodes with handlers
     const extendedNodes = useMemo(() => {
-        const hasConnections = new Map<string, boolean>();
+        const connectionCounts = new Map<string, number>();
         edges.forEach(edge => {
-            hasConnections.set(edge.source, true);
-            hasConnections.set(edge.target, true);
+            connectionCounts.set(edge.source, (connectionCounts.get(edge.source) ?? 0) + 1);
+            connectionCounts.set(edge.target, (connectionCounts.get(edge.target) ?? 0) + 1);
         });
 
-        return nodes.map(node => ({
-            ...node,
-            type: 'diary',
-            data: {
-                ...node.data,
-                hasConnections: hasConnections.get(node.id) ?? false,
-                onAddChild: () => handleAddNode(node.id, node.position),
-                onUpdateContent: updateNodeContent,
-                onDelete: handleDeleteNode
-            }
-        }));
-    }, [nodes, handleAddNode, updateNodeContent, handleDeleteNode]);
+        return nodes.map(node => {
+            const connectedEdgeCount = connectionCounts.get(node.id) ?? 0;
+
+            return {
+                ...node,
+                type: 'diary',
+                data: {
+                    ...node.data,
+                    hasConnections: connectedEdgeCount > 0,
+                    connectedEdgeCount,
+                    onAddChild: () => handleAddNode(node.id, node.position),
+                    onUpdateContent: updateNodeContent,
+                    onDelete: handleDeleteNode
+                }
+            };
+        });
+    }, [nodes, edges, handleAddNode, updateNodeContent, handleDeleteNode]);
 
     const edgesWithAutoHandles = useMemo(() => {
         const nodeMap = new Map(nodes.map(n => [n.id, n]));
