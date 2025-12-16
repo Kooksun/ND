@@ -95,7 +95,7 @@ export const useMaps = () => {
                     const childNodeRef = doc(nodesCollection);
                     batch.set(childNodeRef, {
                         label: child.label,
-                        position: { x: child.x, y: 130 },
+                        position: { x: child.x, y: 120 },
                         data: {
                             label: child.label,
                             isChoice: true, // Special flag for choice nodes

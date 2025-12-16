@@ -49,7 +49,49 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         // Calculate position
         let position = { x: 0, y: 0 };
         if (parentId && parentPos) {
-            position = { x: parentPos.x + 250, y: parentPos.y + (Math.random() * 100 - 50) };
+            // Smart layout: Find a free horizontal slot below the parent
+            const VERTICAL_GAP = 120;
+            const HORIZONTAL_SLOT = 180;
+
+            // 1. Find all existing siblings (children of this parent)
+            const childEdges = edges.filter(e => e.source === parentId);
+            const childIds = new Set(childEdges.map(e => e.target));
+            const siblings = nodes.filter(n => childIds.has(n.id));
+
+            // 2. Search for the nearest free slot
+            // Slots: 0 (center), 1 (right), -1 (left), 2, -2, etc.
+            let slotFound = false;
+            let offsetIndex = 0;
+            let finalX = parentPos.x;
+
+            // Check slots in order: 0, 1, -1, 2, -2, 3, -3...
+            const checkIndices = [0];
+            for (let i = 1; i < 100; i++) {
+                checkIndices.push(i, -i);
+            }
+
+            for (const idx of checkIndices) {
+                const candidateX = parentPos.x + (idx * HORIZONTAL_SLOT);
+
+                // Check if this slot is occupied by any sibling
+                // We consider a slot occupied if a sibling is within half a slot width
+                const isOccupied = siblings.some(sibling =>
+                    Math.abs(sibling.position.x - candidateX) < (HORIZONTAL_SLOT / 2)
+                );
+
+                if (!isOccupied) {
+                    finalX = candidateX;
+                    slotFound = true;
+                    break;
+                }
+            }
+
+            // Fallback (should theoretically rarely happen unless huge number of children)
+            if (!slotFound) {
+                finalX = parentPos.x + (siblings.length * HORIZONTAL_SLOT);
+            }
+
+            position = { x: finalX, y: parentPos.y + VERTICAL_GAP };
         } else if (reactFlowInstance) {
             // Center of view
             const center = reactFlowInstance.project({

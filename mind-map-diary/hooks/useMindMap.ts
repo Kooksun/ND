@@ -149,28 +149,46 @@ export const useMindMap = (mapId: string | null) => {
 
         try {
             const batch = writeBatch(db);
+            const nodesToDelete = new Set<string>();
+            const edgesToDelete = new Set<string>();
 
-            // 1. Delete the node
-            const nodeRef = doc(db, "users", user.uid, "maps", mapId, "nodes", nodeId);
-            batch.delete(nodeRef);
+            // Helper to traverse graph and find descendants
+            const findDescendants = (currentId: string) => {
+                nodesToDelete.add(currentId);
 
-            // 2. Find and delete connected edges
-            const edgesRef = collection(db, "users", user.uid, "maps", mapId, "edges");
+                // Find outgoing edges from this node
+                const outgoingEdges = edges.filter(edge => edge.source === currentId);
 
-            // Query for edges where this node is the source
-            const sourceEdgesQuery = query(edgesRef, where("source", "==", nodeId));
-            const sourceEdgesSnapshot = await getDocs(sourceEdgesQuery);
+                outgoingEdges.forEach(edge => {
+                    edgesToDelete.add(edge.id);
+                    if (!nodesToDelete.has(edge.target)) {
+                        findDescendants(edge.target);
+                    }
+                });
+            };
 
-            sourceEdgesSnapshot.docs.forEach((doc) => {
-                batch.delete(doc.ref);
+            // Start traversal
+            findDescendants(nodeId);
+
+            // Also find incoming edges to any of the deleted nodes to maintain integrity
+            // (e.g. if we delete a child, the edge from parent must go too)
+            edges.forEach(edge => {
+                if (nodesToDelete.has(edge.target) || nodesToDelete.has(edge.source)) {
+                    edgesToDelete.add(edge.id);
+                }
             });
 
-            // Query for edges where this node is the target
-            const targetEdgesQuery = query(edgesRef, where("target", "==", nodeId));
-            const targetEdgesSnapshot = await getDocs(targetEdgesQuery);
+            console.log(`Deleting ${nodesToDelete.size} nodes and ${edgesToDelete.size} edges recursively.`);
 
-            targetEdgesSnapshot.docs.forEach((doc) => {
-                batch.delete(doc.ref);
+            // Add delete operations to batch
+            nodesToDelete.forEach(id => {
+                const nodeRef = doc(db, "users", user.uid, "maps", mapId, "nodes", id);
+                batch.delete(nodeRef);
+            });
+
+            edgesToDelete.forEach(id => {
+                const edgeRef = doc(db, "users", user.uid, "maps", mapId, "edges", id);
+                batch.delete(edgeRef);
             });
 
             // Commit the batch
