@@ -1,7 +1,7 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X, LogOut } from "lucide-react";
+import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X, LogOut, Cog } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -24,11 +24,13 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [summarizingMapId, setSummarizingMapId] = useState<string | null>(null);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState(() => {
         const today = new Date();
         return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     });
     const [isDateSummarizing, setIsDateSummarizing] = useState(false);
+    const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
 
     // Auto-collapse on mobile devices
     useEffect(() => {
@@ -275,6 +277,15 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
+    const toggleThemeMode = () => {
+        setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
+    };
+
+    const handleLogoutFromSettings = async () => {
+        setIsSettingsOpen(false);
+        await handleLogout();
+    };
+
     if (loading) return <div style={{ width: isCollapsed ? 60 : 250, padding: 20 }}>...</div>;
 
     return (
@@ -283,19 +294,19 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                 <div className={styles.headerTop}>
                     {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
                     <div className={styles.headerActions}>
-                        {!isCollapsed && (
-                            <button
-                                onClick={handleLogout}
-                                className={styles.logoutButton}
-                                title="로그아웃"
-                            >
-                                <LogOut size={18} />
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setIsSettingsOpen(true)}
+                            className={styles.iconButton}
+                            title="설정"
+                            data-tooltip={isCollapsed ? "설정" : undefined}
+                        >
+                            <Cog size={18} />
+                        </button>
                         <button
                             onClick={() => setIsDateModalOpen(true)}
                             className={styles.iconButton}
                             title="날짜로 이동"
+                            data-tooltip={isCollapsed ? "날짜로 이동" : undefined}
                         >
                             <CalendarDays size={18} />
                         </button>
@@ -477,6 +488,59 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                 className={styles.modalActionButton}
                                 onClick={() => setIsDateModalOpen(false)}
                                 style={{ backgroundColor: "#b2bec3", color: "#2d3436" }}
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isSettingsOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsSettingsOpen(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div className={styles.modalTitle}>설정</div>
+                            <button
+                                onClick={() => setIsSettingsOpen(false)}
+                                className={styles.iconButton}
+                                title="닫기"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className={styles.settingsBody}>
+                            <div className={styles.settingsRow}>
+                                <div className={styles.settingsText}>
+                                    <div className={styles.settingsLabel}>테마</div>
+                                    <div className={styles.settingsHint}>일반 / 다크</div>
+                                </div>
+                                <button
+                                    className={`${styles.switch} ${themeMode === "dark" ? styles.switchOn : ""}`}
+                                    onClick={toggleThemeMode}
+                                    aria-label="테마 전환"
+                                >
+                                    <span className={styles.switchKnob}>{themeMode === "dark" ? "D" : "L"}</span>
+                                </button>
+                            </div>
+
+                            <div className={styles.settingsDivider} />
+
+                            <div className={styles.settingsRow}>
+                                <div className={styles.settingsText}>
+                                    <div className={styles.settingsLabel}>계정</div>
+                                    <div className={styles.settingsHint}>로그아웃 후 언제든 다시 로그인할 수 있어요.</div>
+                                </div>
+                                <button className={styles.logoutAction} onClick={handleLogoutFromSettings}>
+                                    <LogOut size={14} />
+                                    로그아웃
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.modalActions} style={{ gridTemplateColumns: "1fr" }}>
+                            <button
+                                className={styles.modalActionButton}
+                                onClick={() => setIsSettingsOpen(false)}
                             >
                                 닫기
                             </button>
