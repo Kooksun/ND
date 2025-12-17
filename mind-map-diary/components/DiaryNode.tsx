@@ -172,7 +172,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                         <button
                             className={`${styles.magicBtn} ${isGenerating ? styles.loading : ''} nodrag`}
                             onClick={handleBrainstorm}
-                            title="AI 브레인스토밍 (자동 생성)"
+                            title="AI 자동 생성"
                         >
                             {isGenerating ?
                                 <Loader2 size={14} className={styles.spinAnimation} /> :
