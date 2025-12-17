@@ -58,12 +58,16 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
 
         try {
             const topic = title.trim() || "새로운 생각";
-            const ideas = await generateIdeas(topic);
+            // Use contextPath and existingChildren from data prop
+            const contextPath = data.contextPath || [];
+            const existingChildren = data.existingChildren || [];
+
+            console.log("Generating ideas with context:", contextPath, "excluding:", existingChildren, "content:", content);
+
+            // Pass content (from state) as the 4th argument
+            const ideas = await generateIdeas(topic, contextPath, existingChildren, content);
             console.log("Brainstorm result:", ideas);
 
-            // Note: Currently we are just printing to console as per user request to handle it "differently",
-            // but the UI request implies they might want it to still generate nodes.
-            // Re-enabling node generation for now as it's the only logical action for the button.
             if (data.onAddChildren) {
                 await data.onAddChildren(ideas);
             }
@@ -72,7 +76,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         } finally {
             setIsGenerating(false);
         }
-    }, [title, isGenerating, data]);
+    }, [title, isGenerating, data, content]);
 
 
 

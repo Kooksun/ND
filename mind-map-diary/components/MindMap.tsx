@@ -113,13 +113,56 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
     // Extended nodes with handlers
     const extendedNodes = useMemo(() => {
         const connectionCounts = new Map<string, number>();
+        // Map to find parent of a node. Key: Child ID, Value: Parent ID
+        const parentMap = new Map<string, string>();
+        // Map to find children of a node. Key: Parent ID, Value: Array of Child Nodes
+        const childrenMap = new Map<string, Node[]>();
+
         edges.forEach(edge => {
             connectionCounts.set(edge.source, (connectionCounts.get(edge.source) ?? 0) + 1);
             connectionCounts.set(edge.target, (connectionCounts.get(edge.target) ?? 0) + 1);
+
+            parentMap.set(edge.target, edge.source);
+
+            if (!childrenMap.has(edge.source)) {
+                childrenMap.set(edge.source, []);
+            }
+        });
+
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+        // Populate childrenMap with actual node objects
+        edges.forEach(edge => {
+            const childNode = nodeMap.get(edge.target);
+            if (childNode) {
+                const children = childrenMap.get(edge.source);
+                if (children) children.push(childNode);
+            }
         });
 
         return nodes.map(node => {
             const connectedEdgeCount = connectionCounts.get(node.id) ?? 0;
+
+            // Calculate Path Context
+            const contextPath: string[] = [];
+            let currentId = node.id;
+            // Prevent infinite loops in case of cycles (though typically DAG)
+            let depth = 0;
+            while (parentMap.has(currentId) && depth < 20) {
+                const parentId = parentMap.get(currentId)!;
+                const parentNode = nodeMap.get(parentId);
+                if (parentNode && parentNode.data.label) {
+                    contextPath.unshift(parentNode.data.label);
+                }
+                currentId = parentId;
+                depth++;
+            }
+
+            // Identify Existing Children (Direct descendants)
+            const children = childrenMap.get(node.id) || [];
+            const existingChildren = children
+                .map(child => child.data.label)
+                .filter(label => typeof label === 'string' && label.length > 0);
 
             return {
                 ...node,
@@ -128,6 +171,8 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                     ...node.data,
                     hasConnections: connectedEdgeCount > 0,
                     connectedEdgeCount,
+                    contextPath,     // Pass context
+                    existingChildren, // Pass exclusions
                     onAddChild: () => handleAddNode(node.id, node.position),
                     onAddChildren: (contents: string[]) => addChildNodes(node.id, contents), // New handler
                     onUpdateContent: updateNodeContent,

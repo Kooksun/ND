@@ -212,22 +212,63 @@ export const useMindMap = (mapId: string | null) => {
 
         try {
             const batch = writeBatch(db);
+            const VERTICAL_GAP = 120;
+            const HORIZONTAL_SLOT = 180;
 
-            // Layout logic: Vertical list to the right
-            // Start a bit to the right
-            const startX = parentNode.position.x + 300;
-            // Center the new block of nodes vertically relative to the parent
-            // Assuming each node is roughly 100px height (including gap)
-            const totalHeight = contents.length * 100;
-            const startY = parentNode.position.y - (totalHeight / 2) + 50;
+            // 1. Find all existing siblings (children of this parent)
+            const childEdges = edges.filter(e => e.source === parentId);
+            const childIds = new Set(childEdges.map(e => e.target));
+            const siblings = nodes.filter(n => childIds.has(n.id) && !n.hidden);
 
-            contents.forEach((content, index) => {
+            // We will place multiple nodes. For each new node, we need to find a slot.
+            // CAUTION: The 'siblings' array doesn't include the nodes we are *currently* adding in this loop.
+            // We need to track the positions of newly added nodes to avoid overlap with each other.
+            const newPositions: { x: number, y: number }[] = [];
+
+            contents.forEach((content) => {
                 const newNodeRef = doc(collection(db, "users", user.uid, "maps", mapId, "nodes"));
                 const newEdgeRef = doc(collection(db, "users", user.uid, "maps", mapId, "edges"));
 
+                // Find a free slot for this specific node
+                // Merge existing siblings (with known positions) and previously placed new nodes
+                const takenPositions = [
+                    ...siblings.map(n => n.position),
+                    ...newPositions
+                ];
+
+                let slotFound = false;
+                let finalX = parentNode.position.x;
+
+                // Check slots in order: 0, 1, -1, 2, -2...
+                const checkIndices = [0];
+                for (let i = 1; i < 50; i++) checkIndices.push(i, -i);
+
+                for (const idx of checkIndices) {
+                    const candidateX = parentNode.position.x + (idx * HORIZONTAL_SLOT);
+
+                    // Check collision
+                    const isOccupied = takenPositions.some(pos =>
+                        Math.abs(pos.x - candidateX) < (HORIZONTAL_SLOT / 2)
+                    );
+
+                    if (!isOccupied) {
+                        finalX = candidateX;
+                        slotFound = true;
+                        break;
+                    }
+                }
+
+                // If massive overflow, just stack at the end
+                if (!slotFound) {
+                    finalX = parentNode.position.x + (takenPositions.length * HORIZONTAL_SLOT);
+                }
+
+                const position = { x: finalX, y: parentNode.position.y + VERTICAL_GAP };
+                newPositions.push(position);
+
                 batch.set(newNodeRef, {
                     label: content,
-                    position: { x: startX, y: startY + (index * 120) }, // 120px spacing
+                    position: position,
                     data: { label: content, preview: content },
                     type: 'diary',
                     createdAt: serverTimestamp(),
