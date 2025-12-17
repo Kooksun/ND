@@ -292,14 +292,15 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                 <div className={styles.headerTop}>
                     {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
                     <div className={styles.headerActions}>
-                        <button
-                            onClick={() => setIsSettingsOpen(true)}
-                            className={styles.iconButton}
-                            title="설정"
-                            data-tooltip={isCollapsed ? "설정" : undefined}
-                        >
-                            <Cog size={18} />
-                        </button>
+                        {!isCollapsed && (
+                            <button
+                                onClick={() => setIsSettingsOpen(true)}
+                                className={styles.iconButton}
+                                title="설정"
+                            >
+                                <Cog size={18} />
+                            </button>
+                        )}
                         <button
                             onClick={() => setIsDateModalOpen(true)}
                             className={styles.iconButton}
