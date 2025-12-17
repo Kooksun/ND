@@ -3,12 +3,51 @@
   --foreground: #2d3436;
   --primary: #0984e3;
   --secondary: #636e72;
+  --surface: #ffffff;
+  --border: #e1e1e1;
+  --hover-bg: #f5f6fa;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+body.dark {
+  --background: #2d3436;
+  --foreground: #dfe6e9;
+  --primary: #74b9ff;
+  --secondary: #b2bec3;
+  --surface: #353b48;
+  --border: #4b6584;
+  --hover-bg: #3d4655;
+
+  /* React Flow Dark Mode Overrides (v11) */
+  --xy-edge-stroke: #b2bec3;
+  --xy-node-border: #4b6584;
+}
+
+/* Specific React Flow Styling for Dark Mode */
+body.dark .react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  fill: var(--foreground);
+}
+
+body.dark .react-flow__controls-button:hover {
+  background: var(--hover-bg);
+}
+
+body.dark .react-flow__controls-button svg {
+  fill: var(--foreground);
+}
+
+body.dark .react-flow__minimap {
+  background: var(--surface);
+}
+
+body.dark .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.4);
+}
+
+body.dark .react-flow__minimap-node {
+  fill: var(--primary);
+  stroke: none;
 }
 
 body {

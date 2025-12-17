@@ -5,6 +5,7 @@ import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays,
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import styles from "./Sidebar.module.css";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 
@@ -30,7 +31,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     });
     const [isDateSummarizing, setIsDateSummarizing] = useState(false);
-    const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+    const { theme, toggleTheme } = useTheme();
 
     // Auto-collapse on mobile devices
     useEffect(() => {
@@ -277,9 +278,6 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
-    const toggleThemeMode = () => {
-        setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
-    };
 
     const handleLogoutFromSettings = async () => {
         setIsSettingsOpen(false);
@@ -501,13 +499,6 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
                             <div className={styles.modalTitle}>설정</div>
-                            <button
-                                onClick={() => setIsSettingsOpen(false)}
-                                className={styles.iconButton}
-                                title="닫기"
-                            >
-                                <X size={16} />
-                            </button>
                         </div>
                         <div className={styles.settingsBody}>
                             <div className={styles.settingsRow}>
@@ -516,11 +507,11 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                     <div className={styles.settingsHint}>일반 / 다크</div>
                                 </div>
                                 <button
-                                    className={`${styles.switch} ${themeMode === "dark" ? styles.switchOn : ""}`}
-                                    onClick={toggleThemeMode}
+                                    className={`${styles.switch} ${theme === "dark" ? styles.switchOn : ""}`}
+                                    onClick={toggleTheme}
                                     aria-label="테마 전환"
                                 >
-                                    <span className={styles.switchKnob}>{themeMode === "dark" ? "D" : "L"}</span>
+                                    <span className={styles.switchKnob}>{theme === "dark" ? "D" : "L"}</span>
                                 </button>
                             </div>
 
@@ -537,10 +528,11 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                 </button>
                             </div>
                         </div>
-                        <div className={styles.modalActions} style={{ gridTemplateColumns: "1fr" }}>
+                        <div className={styles.modalActions} style={{ justifyContent: "center" }}>
                             <button
                                 className={styles.modalActionButton}
                                 onClick={() => setIsSettingsOpen(false)}
+                                style={{ width: '120px', flex: 'none' }}
                             >
                                 닫기
                             </button>
