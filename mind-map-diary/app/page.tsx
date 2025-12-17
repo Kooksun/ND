@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { useModal } from "@/contexts/ModalContext";
 import MindMap from "@/components/MindMap";
 import Sidebar from "@/components/Sidebar";
 import { useMaps } from "@/hooks/useMaps";
@@ -12,6 +13,7 @@ export default function Home() {
   const { user, loading } = useAuth();
   const { maps, createMap, updateMapTitle, deleteMap } = useMaps();
   const router = useRouter();
+  const modal = useModal();
   const [currentMapId, setCurrentMapId] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -39,9 +41,19 @@ export default function Home() {
   const handleTitleEdit = async () => {
     if (!currentMapId) return;
     const currentTitle = maps.find(m => m.id === currentMapId)?.title || "";
-    const nextTitle = prompt("새 제목을 입력하세요.", currentTitle);
-    if (nextTitle && nextTitle.trim().length > 0 && nextTitle !== currentTitle) {
-      await updateMapTitle(currentMapId, nextTitle.trim());
+    const nextTitle = await modal.prompt({
+      title: "제목을 바꿀까요?",
+      message: "새 제목을 입력해 주세요.",
+      initialValue: currentTitle,
+      confirmText: "저장",
+      cancelText: "취소",
+      inputPlaceholder: "새 페이지 제목",
+      tone: "info"
+    });
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
+    if (trimmed.length > 0 && trimmed !== currentTitle) {
+      await updateMapTitle(currentMapId, trimmed);
     }
   };
 
@@ -52,19 +64,41 @@ export default function Home() {
     try {
       const summaryBody = await buildMarkdownSummary(user.uid, currentMapId);
       if (!summaryBody || summaryBody.trim().length === 0) {
-        alert("요약할 노드가 없습니다.");
+        await modal.alert({
+          title: "정리할 노드가 없어요",
+          message: "노드 내용이 비어 있어 정리할 수 없습니다.",
+          tone: "warning",
+          confirmText: "확인"
+        });
         return;
       }
       const summaryText = `# ${mapTitle}\n\n${summaryBody}`;
       try {
         await navigator.clipboard.writeText(summaryText);
-        alert(`${mapTitle} 정리 내용을 클립보드에 복사했어요.\n\n${summaryText}`);
+        await modal.alert({
+          title: `${mapTitle} 정리 완료`,
+          message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
+          details: summaryText,
+          tone: "success",
+          confirmText: "확인"
+        });
       } catch {
-        alert(`${mapTitle} 정리 내용입니다.\n\n${summaryText}`);
+        await modal.alert({
+          title: `${mapTitle} 정리 내용`,
+          message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
+          details: summaryText,
+          tone: "info",
+          confirmText: "닫기"
+        });
       }
     } catch (error) {
       console.error("Failed to summarize map:", error);
-      alert("요약을 불러오지 못했습니다. 다시 시도해주세요.");
+      await modal.alert({
+        title: "정리를 불러오지 못했어요",
+        message: "잠시 후 다시 시도해주세요.",
+        tone: "danger",
+        confirmText: "확인"
+      });
     } finally {
       setIsSummarizing(false);
     }
@@ -72,7 +106,14 @@ export default function Home() {
 
   const handleDelete = async () => {
     if (!currentMapId || isDeleting) return;
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const confirmed = await modal.confirm({
+      title: "페이지를 삭제할까요?",
+      message: "삭제 후에는 복구가 어려워요.",
+      confirmText: "삭제하기",
+      cancelText: "취소",
+      tone: "danger"
+    });
+    if (!confirmed) return;
     setIsDeleting(true);
     try {
       const currentIndex = maps.findIndex(m => m.id === currentMapId);

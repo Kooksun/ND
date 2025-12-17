@@ -1,0 +1,224 @@
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 18, 33, 0.55);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 999;
+}
+
+.panel {
+    position: relative;
+    width: min(520px, 100%);
+    border-radius: 18px;
+    background: linear-gradient(140deg, #ffffff 0%, #f6f8ff 100%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+        0 25px 60px rgba(15, 23, 42, 0.25),
+        0 10px 30px rgba(0, 0, 0, 0.06);
+    padding: 22px;
+    color: #0f172a;
+    overflow: hidden;
+}
+
+.panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(9, 132, 227, 0.15), transparent 40%),
+        radial-gradient(circle at 85% 15%, rgba(108, 92, 231, 0.12), transparent 35%);
+    pointer-events: none;
+}
+
+.panelContent {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 1;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.titleGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.message {
+    color: #475569;
+    line-height: 1.5;
+    font-size: 0.96rem;
+}
+
+.details {
+    background: rgba(15, 23, 42, 0.03);
+    border: 1px solid rgba(15, 23, 42, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #0f172a;
+    max-height: 200px;
+    overflow: auto;
+    white-space: pre-wrap;
+    background-image: linear-gradient(180deg, rgba(9, 132, 227, 0.05), transparent);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.input {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.95rem;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+    border-color: rgba(9, 132, 227, 0.35);
+    box-shadow: 0 0 0 4px rgba(9, 132, 227, 0.12);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.button {
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+    font-size: 0.95rem;
+}
+
+.button:active {
+    transform: translateY(1px);
+}
+
+.secondary {
+    background: white;
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+.secondary:hover {
+    border-color: rgba(15, 23, 42, 0.16);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.primary {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    color: white;
+    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
+}
+
+.primary:hover {
+    box-shadow: 0 16px 32px rgba(37, 99, 235, 0.38);
+}
+
+.danger {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: white;
+    box-shadow: 0 12px 30px rgba(239, 68, 68, 0.35);
+}
+
+.danger:hover {
+    box-shadow: 0 16px 32px rgba(239, 68, 68, 0.42);
+}
+
+.success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    box-shadow: 0 12px 30px rgba(34, 197, 94, 0.35);
+}
+
+.badgeRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.05);
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 0.92rem;
+}
+
+.closeArea {
+    position: absolute;
+    inset: 0;
+}
+
+@media (max-width: 540px) {
+    .panel {
+        padding: 18px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .button {
+        width: 100%;
+        justify-content: center;
+        display: inline-flex;
+        align-items: center;
+    }
+}

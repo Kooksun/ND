@@ -4,6 +4,7 @@ import { useMaps, MapData } from "@/hooks/useMaps";
 import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModal } from "@/contexts/ModalContext";
 import styles from "./Sidebar.module.css";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 
@@ -16,6 +17,7 @@ interface SidebarProps {
 export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
     const { maps, loading, deleteMap, updateMapTitle } = useMaps();
     const { user, logout } = useAuth();
+    const modal = useModal();
     const [editingMapId, setEditingMapId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [hoveredMapId, setHoveredMapId] = useState<string | null>(null);
@@ -72,20 +74,42 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         try {
             const summaryBody = await buildMarkdownSummary(user.uid, mapId);
             if (!summaryBody || summaryBody.trim().length === 0) {
-                alert("요약할 노드가 없습니다.");
+                await modal.alert({
+                    title: "정리할 노드가 없어요",
+                    message: "노드 내용이 비어 있어 정리할 수 없습니다.",
+                    tone: "warning",
+                    confirmText: "확인"
+                });
                 return;
             }
-            const summaryText = `# ${mapTitle}\\n\\n${summaryBody}`;
+            const summaryText = `# ${mapTitle}\n\n${summaryBody}`;
 
             try {
                 await navigator.clipboard.writeText(summaryText);
-                alert(`${mapTitle} 정리 내용을 클립보드에 복사했어요.\\n${summaryText}`);
+                await modal.alert({
+                    title: `${mapTitle} 정리 완료`,
+                    message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
+                    details: summaryText,
+                    tone: "success",
+                    confirmText: "확인"
+                });
             } catch {
-                alert(`${mapTitle} 정리 내용입니다.\\n${summaryText}`);
+                await modal.alert({
+                    title: `${mapTitle} 정리 내용`,
+                    message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
+                    details: summaryText,
+                    tone: "info",
+                    confirmText: "닫기"
+                });
             }
         } catch (error) {
             console.error("Failed to summarize map:", error);
-            alert("요약을 불러오지 못했습니다. 다시 시도해주세요.");
+            await modal.alert({
+                title: "정리를 불러오지 못했어요",
+                message: "잠시 후 다시 시도해주세요.",
+                tone: "danger",
+                confirmText: "확인"
+            });
         } finally {
             setSummarizingMapId(null);
         }
@@ -145,11 +169,16 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         return 0;
     };
 
-    const handleViewByDate = () => {
+    const handleViewByDate = async () => {
         if (!selectedDate) return;
         const matches = findMapsByDate(selectedDate);
         if (matches.length === 0) {
-            alert("선택한 날짜의 데일리 기록이 없습니다.");
+            await modal.alert({
+                title: "데일리 기록이 없어요",
+                message: "선택한 날짜에 작성된 데일리 모드 기록을 찾지 못했습니다.",
+                tone: "info",
+                confirmText: "확인"
+            });
             return;
         }
         const latest = [...matches].sort((a, b) => getMapTimestamp(b) - getMapTimestamp(a))[0];
@@ -162,7 +191,12 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         if (!user || !selectedDate) return;
         const matches = findMapsByDate(selectedDate);
         if (matches.length === 0) {
-            alert("선택한 날짜의 데일리 기록이 없습니다.");
+            await modal.alert({
+                title: "데일리 기록이 없어요",
+                message: "선택한 날짜에 작성된 데일리 모드 기록을 찾지 못했습니다.",
+                tone: "info",
+                confirmText: "확인"
+            });
             return;
         }
         setIsDateSummarizing(true);
@@ -178,32 +212,66 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             }
 
             if (summaries.length === 0) {
-                alert("요약할 노드가 없습니다.");
+                await modal.alert({
+                    title: "정리할 노드가 없어요",
+                    message: "선택한 날짜의 노드 내용이 비어 있습니다.",
+                    tone: "warning",
+                    confirmText: "확인"
+                });
                 return;
             }
 
             const combined = summaries.join("\n\n");
             try {
                 await navigator.clipboard.writeText(combined);
-                alert(`선택한 날짜(${selectedDate})의 정리 내용을 클립보드에 복사했어요.\n\n${combined}`);
+                await modal.alert({
+                    title: `${selectedDate} 정리 완료`,
+                    message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
+                    details: combined,
+                    tone: "success",
+                    confirmText: "확인"
+                });
             } catch {
-                alert(`선택한 날짜(${selectedDate})의 정리 내용입니다.\n\n${combined}`);
+                await modal.alert({
+                    title: `${selectedDate} 정리 내용`,
+                    message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
+                    details: combined,
+                    tone: "info",
+                    confirmText: "닫기"
+                });
             }
         } catch (error) {
             console.error("Failed to summarize maps by date:", error);
-            alert("요약을 불러오지 못했습니다. 다시 시도해주세요.");
+            await modal.alert({
+                title: "정리를 불러오지 못했어요",
+                message: "잠시 후 다시 시도해주세요.",
+                tone: "danger",
+                confirmText: "확인"
+            });
         } finally {
             setIsDateSummarizing(false);
         }
     };
 
     const handleLogout = async () => {
-        if (!confirm("정말 로그아웃하시겠습니까?")) return;
+        const confirmed = await modal.confirm({
+            title: "로그아웃 하시겠어요?",
+            message: "언제든 다시 로그인할 수 있습니다.",
+            confirmText: "로그아웃",
+            cancelText: "계속 이용",
+            tone: "warning"
+        });
+        if (!confirmed) return;
         try {
             await logout();
         } catch (error) {
             console.error("Failed to logout:", error);
-            alert("로그아웃에 실패했습니다. 다시 시도해주세요.");
+            await modal.alert({
+                title: "로그아웃에 실패했어요",
+                message: "잠시 후 다시 시도해주세요.",
+                tone: "danger",
+                confirmText: "확인"
+            });
         }
     };
 
@@ -332,21 +400,27 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                         <ListTree size={12} />
                                     </button>
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
-                                            if (confirm("정말 삭제하시겠습니까?")) {
-                                                if (currentMapId === map.id) {
-                                                    const currentIndex = maps.findIndex(m => m.id === map.id);
-                                                    let nextMapId = null;
-                                                    if (currentIndex < maps.length - 1) {
-                                                        nextMapId = maps[currentIndex + 1].id;
-                                                    } else if (currentIndex > 0) {
-                                                        nextMapId = maps[currentIndex - 1].id;
-                                                    }
-                                                    onSelectMap(nextMapId);
+                                            const confirmed = await modal.confirm({
+                                                title: "페이지를 삭제할까요?",
+                                                message: "삭제 후에는 복구가 어려워요.",
+                                                confirmText: "삭제하기",
+                                                cancelText: "취소",
+                                                tone: "danger"
+                                            });
+                                            if (!confirmed) return;
+                                            if (currentMapId === map.id) {
+                                                const currentIndex = maps.findIndex(m => m.id === map.id);
+                                                let nextMapId = null;
+                                                if (currentIndex < maps.length - 1) {
+                                                    nextMapId = maps[currentIndex + 1].id;
+                                                } else if (currentIndex > 0) {
+                                                    nextMapId = maps[currentIndex - 1].id;
                                                 }
-                                                deleteMap(map.id);
+                                                onSelectMap(nextMapId);
                                             }
+                                            deleteMap(map.id);
                                         }}
                                         className={styles.actionButton}
                                         style={{ color: '#d63031' }}

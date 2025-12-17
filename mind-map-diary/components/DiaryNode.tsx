@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Plus, Trash2, Check } from 'lucide-react';
+import { useModal } from '@/contexts/ModalContext';
 import styles from './DiaryNode.module.css';
 
 const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
@@ -8,6 +9,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
     const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
+    const modal = useModal();
     const connectedEdgeCount = data.connectedEdgeCount ?? (data.hasConnections ? 1 : 0);
     const hasConnections = connectedEdgeCount > 0;
 
@@ -34,12 +36,18 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
 
     const handleDelete = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm("삭제하시겠습니까?")) {
-            if (data.onDelete) {
-                await data.onDelete(id);
-            }
+        const confirmed = await modal.confirm({
+            title: "노드를 삭제할까요?",
+            message: "연결된 노트 흐름에도 영향이 있을 수 있어요.",
+            confirmText: "삭제",
+            cancelText: "유지하기",
+            tone: "danger"
+        });
+        if (!confirmed) return;
+        if (data.onDelete) {
+            await data.onDelete(id);
         }
-    }, [data, id]);
+    }, [data, id, modal]);
 
     const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
