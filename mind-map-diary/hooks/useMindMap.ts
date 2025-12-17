@@ -268,8 +268,12 @@ export const useMindMap = (mapId: string | null) => {
 
                 batch.set(newNodeRef, {
                     label: content,
+                    content: "", // Initialize body content as empty
                     position: position,
-                    data: { label: content, preview: content },
+                    data: {
+                        label: content,
+                        preview: "" // Initialize preview as empty (don't repeat title)
+                    },
                     type: 'diary',
                     createdAt: serverTimestamp(),
                 });

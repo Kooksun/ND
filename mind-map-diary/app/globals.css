@@ -18,8 +18,8 @@ body.dark {
   --hover-bg: #3d4655;
 
   /* React Flow Dark Mode Overrides (v11) */
-  --xy-edge-stroke: #b2bec3;
-  --xy-node-border: #4b6584;
+  --xy-edge-stroke: #636e72;
+  --xy-node-border: rgba(255, 255, 255, 0.4);
 }
 
 /* Specific React Flow Styling for Dark Mode */
