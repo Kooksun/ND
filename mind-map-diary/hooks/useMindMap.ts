@@ -204,6 +204,52 @@ export const useMindMap = (mapId: string | null) => {
         }
     };
 
+    const addChildNodes = async (parentId: string, contents: string[]) => {
+        if (!user || !mapId) return;
+
+        const parentNode = nodes.find(n => n.id === parentId);
+        if (!parentNode) return;
+
+        try {
+            const batch = writeBatch(db);
+
+            // Layout logic: Vertical list to the right
+            // Start a bit to the right
+            const startX = parentNode.position.x + 300;
+            // Center the new block of nodes vertically relative to the parent
+            // Assuming each node is roughly 100px height (including gap)
+            const totalHeight = contents.length * 100;
+            const startY = parentNode.position.y - (totalHeight / 2) + 50;
+
+            contents.forEach((content, index) => {
+                const newNodeRef = doc(collection(db, "users", user.uid, "maps", mapId, "nodes"));
+                const newEdgeRef = doc(collection(db, "users", user.uid, "maps", mapId, "edges"));
+
+                batch.set(newNodeRef, {
+                    label: content,
+                    position: { x: startX, y: startY + (index * 120) }, // 120px spacing
+                    data: { label: content, preview: content },
+                    type: 'diary',
+                    createdAt: serverTimestamp(),
+                });
+
+                batch.set(newEdgeRef, {
+                    source: parentId,
+                    target: newNodeRef.id,
+                    id: `e${parentId}-${newNodeRef.id}`
+                });
+            });
+
+            const mapRef = doc(db, "users", user.uid, "maps", mapId);
+            batch.update(mapRef, { updatedAt: serverTimestamp() });
+
+            await batch.commit();
+        } catch (error) {
+            console.error("Error adding child nodes:", error);
+            throw error;
+        }
+    };
+
     return {
         nodes,
         edges,
@@ -218,6 +264,7 @@ export const useMindMap = (mapId: string | null) => {
         syncNode,
         setNodes,
         setEdges,
-        deleteNode
+        deleteNode,
+        addChildNodes
     };
 };

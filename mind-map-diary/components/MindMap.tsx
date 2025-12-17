@@ -28,7 +28,8 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
         updateNodePosition,
         updateNodeContent,
         updateNodeVisibility,
-        deleteNode
+        deleteNode,
+        addChildNodes
     } = useMindMap(mapId);
 
     const reactFlowInstance = useReactFlow();
@@ -128,12 +129,13 @@ function MindMapContent({ mapId }: { mapId: string | null }) {
                     hasConnections: connectedEdgeCount > 0,
                     connectedEdgeCount,
                     onAddChild: () => handleAddNode(node.id, node.position),
+                    onAddChildren: (contents: string[]) => addChildNodes(node.id, contents), // New handler
                     onUpdateContent: updateNodeContent,
                     onDelete: handleDeleteNode
                 }
             };
         });
-    }, [nodes, edges, handleAddNode, updateNodeContent, handleDeleteNode]);
+    }, [nodes, edges, handleAddNode, updateNodeContent, handleDeleteNode, addChildNodes]);
 
     const edgesWithAutoHandles = useMemo(() => {
         const nodeMap = new Map(nodes.map(n => [n.id, n]));

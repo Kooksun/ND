@@ -1,13 +1,15 @@
 import { memo, useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, Wand2, Loader2 } from 'lucide-react';
 import { useModal } from '@/contexts/ModalContext';
+import { generateIdeas } from '@/utils/gemini';
 import styles from './DiaryNode.module.css';
 
 const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [title, setTitle] = useState(data.label || "");
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
     const modal = useModal();
     const connectedEdgeCount = data.connectedEdgeCount ?? (data.hasConnections ? 1 : 0);
@@ -48,6 +50,25 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
             await data.onDelete(id);
         }
     }, [data, id, modal]);
+
+    const handleBrainstorm = useCallback(async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isGenerating) return;
+        setIsGenerating(true);
+
+        try {
+            const topic = title.trim() || "새로운 생각";
+            const ideas = await generateIdeas(topic);
+            if (data.onAddChildren) {
+                await data.onAddChildren(ideas);
+            }
+        } catch (error) {
+            console.error("Brainstorm failed:", error);
+            // Optionally could use a toast here
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [title, isGenerating, data]);
 
     const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
@@ -137,16 +158,28 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                 )}
 
                 {!isEditing && (
-                    <button
-                        className={styles.addBtn}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            data.onAddChild && data.onAddChild();
-                        }}
-                        title="자식 노드 추가"
-                    >
-                        <Plus size={14} />
-                    </button>
+                    <>
+                        <button
+                            className={`${styles.magicBtn} ${isGenerating ? styles.loading : ''} nodrag`}
+                            onClick={handleBrainstorm}
+                            title="AI 브레인스토밍"
+                        >
+                            {isGenerating ?
+                                <Loader2 size={14} className={styles.spinAnimation} /> :
+                                <Wand2 size={14} />
+                            }
+                        </button>
+                        <button
+                            className={styles.addBtn}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                data.onAddChild && data.onAddChild();
+                            }}
+                            title="자식 노드 추가"
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </>
                 )}
             </div>
 
