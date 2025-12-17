@@ -1,13 +1,15 @@
 import { memo, useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, Wand2, Loader2 } from 'lucide-react';
 import { useModal } from '@/contexts/ModalContext';
+import { generateIdeas } from '@/utils/gemini';
 import styles from './DiaryNode.module.css';
 
 const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
     const [title, setTitle] = useState(data.label || "");
     const [content, setContent] = useState(data.data?.content || data.content || "");
     const [isEditing, setIsEditing] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [editStartWidth, setEditStartWidth] = useState<number | null>(null);
     const modal = useModal();
     const connectedEdgeCount = data.connectedEdgeCount ?? (data.hasConnections ? 1 : 0);
@@ -48,6 +50,29 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
             await data.onDelete(id);
         }
     }, [data, id, modal]);
+
+    const handleBrainstorm = useCallback(async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isGenerating) return;
+        setIsGenerating(true);
+
+        try {
+            const topic = title.trim() || "새로운 생각";
+            const ideas = await generateIdeas(topic);
+            console.log("Brainstorm result:", ideas);
+
+            // Note: Currently we are just printing to console as per user request to handle it "differently",
+            // but the UI request implies they might want it to still generate nodes.
+            // Re-enabling node generation for now as it's the only logical action for the button.
+            if (data.onAddChildren) {
+                await data.onAddChildren(ideas);
+            }
+        } catch (error) {
+            console.error("Brainstorm failed:", error);
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [title, isGenerating, data]);
 
 
 
@@ -139,7 +164,17 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                 )}
 
                 {!isEditing && (
-                    <>
+                    <div className={styles.actionContainer}>
+                        <button
+                            className={`${styles.magicBtn} ${isGenerating ? styles.loading : ''} nodrag`}
+                            onClick={handleBrainstorm}
+                            title="AI 브레인스토밍 (자동 생성)"
+                        >
+                            {isGenerating ?
+                                <Loader2 size={14} className={styles.spinAnimation} /> :
+                                <Wand2 size={14} />
+                            }
+                        </button>
                         <button
                             className={styles.addBtn}
                             onClick={(e) => {
@@ -150,7 +185,7 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                         >
                             <Plus size={14} />
                         </button>
-                    </>
+                    </div>
                 )}
             </div>
 

@@ -157,10 +157,33 @@
     background: #fdcb6e;
 }
 
-.addBtn {
+.actionContainer {
     position: absolute;
     bottom: 10px;
     right: 10px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* Allow container to expand to the left */
+    transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Bouncy ease */
+    z-index: 20;
+}
+
+/* Hover on desktop, active/focus-within for mobile taps */
+.actionContainer:hover,
+.actionContainer:active,
+.actionContainer:focus-within {
+    width: 70px;
+    /* 28px (add) + 6px (gap) + 28px (magic) + extra spacing */
+}
+
+.addBtn {
+    position: absolute;
+    right: 0;
+    top: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -173,6 +196,7 @@
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    z-index: 2;
 }
 
 .addBtn:hover {
@@ -182,9 +206,9 @@
 
 .magicBtn {
     position: absolute;
-    bottom: 10px;
-    right: 44px;
-    /* Space for addBtn */
+    right: 0;
+    /* Start behind the add button */
+    top: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -195,13 +219,26 @@
     background: #e1bee7;
     color: #8e44ad;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    transform: scale(0.5);
+    z-index: 1;
+}
+
+.actionContainer:hover .magicBtn,
+.actionContainer:active .magicBtn,
+.actionContainer:focus-within .magicBtn {
+    right: 38px;
+    /* Slide out to the left */
+    opacity: 1;
+    transform: scale(1);
 }
 
 .magicBtn:hover {
     background: #9b59b6;
     color: white;
+    transform: scale(1.1);
 }
 
 .magicBtn.loading {
