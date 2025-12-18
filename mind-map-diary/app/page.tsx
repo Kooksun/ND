@@ -6,6 +6,8 @@ import { useModal } from "@/contexts/ModalContext";
 import MindMap from "@/components/MindMap";
 import Sidebar from "@/components/Sidebar";
 import { useMaps } from "@/hooks/useMaps";
+import { useReports } from "@/hooks/useReports";
+import ReportViewer from "@/components/ReportViewer";
 import { Edit2, ListTree, Trash2 } from "lucide-react";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
@@ -13,9 +15,13 @@ import { summarizeDiary } from "@/utils/gemini";
 export default function Home() {
   const { user, loading } = useAuth();
   const { maps, createMap, updateMapTitle, deleteMap, updateMapMetadata } = useMaps();
+  const { reports, loadingReports } = useReports(maps);
   const router = useRouter();
   const modal = useModal();
-  const [currentMapId, setCurrentMapId] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<'map' | 'report'>('map');
+
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -25,23 +31,43 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  // Effect to select the most recent map on load if none selected
+  // Effect to select the most recent item on load
   useEffect(() => {
-    if (!currentMapId && maps.length > 0) {
-      setCurrentMapId(maps[0].id);
+    if (!selectedId && !loading && !loadingReports) {
+      // Find the most recent among maps and reports
+      const latestMap = maps[0];
+      const latestReport = reports[0];
+
+      if (!latestMap && !latestReport) return;
+
+      const mapTime = latestMap?.createdAt?.seconds || 0;
+      const reportTime = latestReport?.createdAt?.seconds || 0;
+
+      if (reportTime > mapTime) {
+        setSelectedId(latestReport.id);
+        setSelectedType('report');
+      } else if (latestMap) {
+        setSelectedId(latestMap.id);
+        setSelectedType('map');
+      }
     }
-  }, [maps]);
+  }, [maps, reports, loading, loadingReports, selectedId]);
+
+  const handleSelect = (id: string | null, type: 'map' | 'report') => {
+    setSelectedId(id);
+    setSelectedType(type);
+  };
 
   const handleNewMap = async (type: 'blank' | 'daily' = 'blank') => {
     const newId = await createMap(undefined, type);
     if (newId) {
-      setCurrentMapId(newId);
+      handleSelect(newId, 'map');
     }
   };
 
   const handleTitleEdit = async () => {
-    if (!currentMapId) return;
-    const currentTitle = maps.find(m => m.id === currentMapId)?.title || "";
+    if (!selectedId || selectedType !== 'map') return;
+    const currentTitle = maps.find(m => m.id === selectedId)?.title || "";
     const nextTitle = await modal.prompt({
       title: "제목을 바꿀까요?",
       message: "새 제목을 입력해 주세요.",
@@ -54,16 +80,15 @@ export default function Home() {
     if (!nextTitle) return;
     const trimmed = nextTitle.trim();
     if (trimmed.length > 0 && trimmed !== currentTitle) {
-      await updateMapTitle(currentMapId, trimmed);
+      await updateMapTitle(selectedId, trimmed);
     }
   };
 
   const handleSummary = async (forceRegenerate = false) => {
-    if (!user || !currentMapId) return;
-    const map = maps.find(m => m.id === currentMapId);
+    if (!user || !selectedId || selectedType !== 'map') return;
+    const map = maps.find(m => m.id === selectedId);
     const mapTitle = map?.title || "제목 없음";
 
-    // If summary exists and not forcing regeneration, show it first
     if (map?.summary && !forceRegenerate) {
       const wantRegenerate = await modal.confirm({
         title: `${map.emotion || "📝"} ${mapTitle} 정리`,
@@ -73,17 +98,12 @@ export default function Home() {
         tone: "success",
         showCancel: true
       });
-
-      // If user clicked "다시 정리하기" (cancelText returns false in modal.confirm)
-      if (!wantRegenerate) {
-        handleSummary(true);
-      }
+      if (!wantRegenerate) handleSummary(true);
       return;
     }
 
     setIsSummarizing(true);
-    // Show a non-blocking loading modal
-    const loadingModal = modal.show({
+    modal.show({
       title: "AI 정리 중",
       message: "AI가 소중한 기록들을 따뜻하게 정리하고 있어요. 잠시만 기다려 주세요.",
       tone: "loading",
@@ -91,13 +111,9 @@ export default function Home() {
     });
 
     try {
-      // 1. Build Markdown from nodes
-      const markdownBody = await buildMarkdownSummary(user.uid, currentMapId);
+      const markdownBody = await buildMarkdownSummary(user.uid, selectedId);
       if (!markdownBody || markdownBody.trim().length === 0) {
         setIsSummarizing(false);
-        // Important: we need to dismiss the loading modal before showing the alert
-        // But since we can't easily dismiss it with the current useModal, 
-        // I will assume the next modal will replace it.
         await modal.alert({
           title: "정리할 노드가 없어요",
           message: "노드 내용이 비어 있어 정리할 수 없습니다.",
@@ -107,20 +123,15 @@ export default function Home() {
         return;
       }
 
-      // 2. AI Summarization & Emotion Analysis
       const { summary, emotion } = await summarizeDiary(markdownBody);
+      await updateMapMetadata(selectedId, { summary, emotion });
 
-      // 3. Save result back to map metadata
-      await updateMapMetadata(currentMapId, { summary, emotion });
-
-      // 4. Show final result (this will replace the loading modal)
       await modal.alert({
         title: `${emotion} ${mapTitle} 정리 완료`,
         message: summary,
         tone: "success",
         confirmText: "확인"
       });
-
     } catch (error) {
       console.error("Failed to summarize map:", error);
       await modal.alert({
@@ -135,7 +146,7 @@ export default function Home() {
   };
 
   const handleDelete = async () => {
-    if (!currentMapId || isDeleting) return;
+    if (!selectedId || isDeleting || selectedType !== 'map') return;
     const confirmed = await modal.confirm({
       title: "페이지를 삭제할까요?",
       message: "삭제 후에는 복구가 어려워요.",
@@ -146,31 +157,36 @@ export default function Home() {
     if (!confirmed) return;
     setIsDeleting(true);
     try {
-      const currentIndex = maps.findIndex(m => m.id === currentMapId);
-      let nextMapId: string | null = null;
+      const currentIndex = maps.findIndex(m => m.id === selectedId);
+      let nextId: string | null = null;
       if (currentIndex < maps.length - 1) {
-        nextMapId = maps[currentIndex + 1].id;
+        nextId = maps[currentIndex + 1].id;
       } else if (currentIndex > 0) {
-        nextMapId = maps[currentIndex - 1].id;
+        nextId = maps[currentIndex - 1].id;
       }
-      await deleteMap(currentMapId);
-      setCurrentMapId(nextMapId);
+      await deleteMap(selectedId);
+      handleSelect(nextId, 'map');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading || loadingReports) return <div>Loading...</div>;
   if (!user) return null;
 
+  const currentMap = selectedType === 'map' ? maps.find(m => m.id === selectedId) : null;
+  const currentReport = selectedType === 'report' ? reports.find(r => r.id === selectedId) : null;
+
   return (
-    <main style={{ width: '100vw', height: '100vh', display: 'flex' }}>
+    <main style={{ width: '100vw', height: '100vh', display: 'flex', overflow: 'hidden' }}>
       <Sidebar
-        currentMapId={currentMapId}
-        onSelectMap={setCurrentMapId}
+        selectedId={selectedId}
+        selectedType={selectedType}
+        onSelect={handleSelect}
         onNewMap={handleNewMap}
+        reports={reports}
       />
-      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={{
             fontSize: '1.5rem',
@@ -182,10 +198,11 @@ export default function Home() {
             backdropFilter: 'blur(4px)',
             boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
           }}>
-            {maps.find(m => m.id === currentMapId)?.emotion && <span style={{ marginRight: 8 }}>{maps.find(m => m.id === currentMapId)?.emotion}</span>}
-            {maps.find(m => m.id === currentMapId)?.title || "Mind Map Diary"}
+            {selectedType === 'map' && currentMap?.emotion && <span style={{ marginRight: 8 }}>{currentMap.emotion}</span>}
+            {selectedType === 'report' && currentReport?.emotion && <span style={{ marginRight: 8 }}>{currentReport.emotion}</span>}
+            {selectedType === 'map' ? (currentMap?.title || "Mind Map Diary") : (currentReport?.periodDisplay || "Report")}
           </h1>
-          {currentMapId && (
+          {selectedType === 'map' && selectedId && (
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={handleTitleEdit}
@@ -213,7 +230,12 @@ export default function Home() {
             </div>
           )}
         </div>
-        <MindMap mapId={currentMapId} key={currentMapId || "empty"} />
+
+        {selectedType === 'map' ? (
+          <MindMap mapId={selectedId} key={selectedId || "empty"} />
+        ) : (
+          currentReport && <ReportViewer report={currentReport} />
+        )}
       </div>
     </main>
   );

@@ -106,3 +106,62 @@ export const summarizeDiary = async (
     }
 };
 
+export interface ReportResult {
+    chronological: string;
+    thematic: string;
+    summary: string;
+    emotion: string;
+}
+
+export const generateReport = async (
+    type: 'weekly' | 'monthly',
+    period: string,
+    markdownContent: string
+): Promise<ReportResult> => {
+    if (!API_KEY) throw new Error("Gemini API Key is missing");
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+    You are a professional yet warm and empathetic personal growth consultant.
+    Below is a collection of mind map diaries for a ${type} period (${period}):
+    
+    ${markdownContent}
+    
+    Task: Analyze this period and provide a 2-phase report.
+    1. **Chronological Analysis (시간순 분석)**: A narrative reconstruction of how the period unfolded. Focus on the flow of events and emotional changes over time.
+    2. **Thematic Analysis (테마별 분석)**: Group the activities and thoughts into 3-4 major themes or pillars (e.g., Growth, Health, Relationship, Work).
+    3. **Executive Summary**: A brief, powerful, and encouraging overview (2-3 sentences).
+    4. **Representative Emoji**: ONE emoji representing the core essence of this period.
+
+    Tone: Professional, insightful, and supportive (Korean). Avoid being too casual; use a tone that feels like a life coach's report.
+    
+    Return the result in JSON format:
+    {
+      "chronological": "시간의 흐름에 따라 이번 주는...",
+      "thematic": "### 1. 성장을 위한 도약\\n이번 기간 동안 가장 두드러진...",
+      "summary": "한마디로 이번 기간은 당신에게...",
+      "emotion": "🚀"
+    }
+    
+    Return ONLY the JSON string. Do not include markdown code blocks.`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
+        const data = JSON.parse(cleanedText);
+
+        return {
+            chronological: data.chronological || "시간순 분석을 생성하지 못했습니다.",
+            thematic: data.thematic || "테마별 분석을 생성하지 못했습니다.",
+            summary: data.summary || "전체 요약을 생성하지 못했습니다.",
+            emotion: data.emotion || "📊"
+        };
+    } catch (error) {
+        console.error("Error generating report with Gemini:", error);
+        throw error;
+    }
+};

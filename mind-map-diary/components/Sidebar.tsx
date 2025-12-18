@@ -1,7 +1,10 @@
 "use client";
 
 import { useMaps, MapData } from "@/hooks/useMaps";
-import { Plus, Map as MapIcon, Trash2, Edit2, PanelLeft, ListTree, CalendarDays, X, LogOut, Cog } from "lucide-react";
+import {
+    Plus, Search, Calendar, Settings, LogOut, ChevronLeft, ChevronRight,
+    Edit2, ListTree, Trash2, Map as MapIcon, FileText, X
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -9,14 +12,17 @@ import { useTheme } from "@/contexts/ThemeContext";
 import styles from "./Sidebar.module.css";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
+import { ReportData } from "@/hooks/useReports";
 
 interface SidebarProps {
-    currentMapId: string | null;
-    onSelectMap: (mapId: string | null) => void;
-    onNewMap: (type: 'blank' | 'daily') => void;
+    selectedId: string | null;
+    selectedType: 'map' | 'report';
+    onSelect: (id: string | null, type: 'map' | 'report') => void;
+    onNewMap: (type?: 'blank' | 'daily') => void;
+    reports: ReportData[];
 }
 
-export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
+export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, reports }: SidebarProps) {
     const { maps, loading, deleteMap, updateMapTitle, updateMapMetadata } = useMaps();
     const { user, logout } = useAuth();
     const modal = useModal();
@@ -204,7 +210,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             return;
         }
         const latest = [...matches].sort((a, b) => getMapTimestamp(b) - getMapTimestamp(a))[0];
-        onSelectMap(latest.id);
+        onSelect(latest.id, 'map');
         setIsDateModalOpen(false);
         setIsCollapsed(false);
     };
@@ -311,6 +317,15 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         await handleLogout();
     };
 
+    const mergedList = [
+        ...maps.map(m => ({ ...m, sidebarType: 'map' as const })),
+        ...reports.map(r => ({ ...r, sidebarType: 'report' as const, title: r.periodDisplay, emotion: r.emotion }))
+    ].sort((a, b) => {
+        const timeA = toDateValue(a.createdAt)?.getTime() || 0;
+        const timeB = toDateValue(b.createdAt)?.getTime() || 0;
+        return timeB - timeA;
+    });
+
     if (loading) return <div style={{ width: isCollapsed ? 60 : 250, padding: 20 }}>...</div>;
 
     return (
@@ -325,7 +340,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                 className={styles.iconButton}
                                 title="설정"
                             >
-                                <Cog size={18} />
+                                <Settings size={18} />
                             </button>
                         )}
                         <button
@@ -334,14 +349,14 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                             title="날짜로 이동"
                             data-tooltip={isCollapsed ? "날짜로 이동" : undefined}
                         >
-                            <CalendarDays size={18} />
+                            <Calendar size={18} />
                         </button>
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
                             className={styles.toggleButton}
                             title={isCollapsed ? "펼치기" : "접기"}
                         >
-                            {isCollapsed ? <PanelLeft size={20} /> : <PanelLeft size={20} />}
+                            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                         </button>
                     </div>
                 </div>
@@ -371,61 +386,65 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
 
             <div className={styles.list}>
                 <div className={styles.listContent}>
-                    {maps.map((map) => (
+                    {mergedList.map((item) => (
                         <div
-                            key={map.id}
-                            className={`${styles.item} ${currentMapId === map.id ? styles.itemActive : ''}`}
-                            onClick={() => onSelectMap(map.id)}
-                            onMouseEnter={() => setHoveredMapId(map.id)}
+                            key={item.id}
+                            className={`${styles.item} ${selectedId === item.id ? styles.itemActive : ''}`}
+                            onClick={() => onSelect(item.id, item.sidebarType)}
+                            onMouseEnter={() => setHoveredMapId(item.id)}
                             onMouseLeave={() => setHoveredMapId(null)}
-                            title={isCollapsed ? map.title : undefined}
-                            data-tooltip={isCollapsed ? map.title : undefined}
+                            title={isCollapsed ? item.title : undefined}
+                            data-tooltip={isCollapsed ? item.title : undefined}
                         >
                             <div className={styles.itemLeft}>
                                 <div className={styles.iconContainer}>
-                                    {map.emotion ? (
-                                        <span className={styles.emotionEmoji}>{map.emotion}</span>
+                                    {item.emotion ? (
+                                        <span className={styles.emotionEmoji}>{item.emotion}</span>
                                     ) : (
-                                        <MapIcon size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
+                                        item.sidebarType === 'report' ? (
+                                            <FileText size={18} color={selectedId === item.id ? "#6c5ce7" : "#b2bec3"} />
+                                        ) : (
+                                            <MapIcon size={18} color={selectedId === item.id ? "#0984e3" : "#b2bec3"} />
+                                        )
                                     )}
                                 </div>
                                 {!isCollapsed && (
-                                    editingMapId === map.id ? (
+                                    item.sidebarType === 'map' && editingMapId === item.id ? (
                                         <input
                                             type="text"
                                             value={editTitle}
                                             onChange={(e) => setEditTitle(e.target.value)}
-                                            onBlur={() => handleEditSave(map.id)}
-                                            onKeyDown={(e) => handleKeyDown(e, map.id)}
+                                            onBlur={() => handleEditSave(item.id)}
+                                            onKeyDown={(e) => handleKeyDown(e, item.id)}
                                             className={styles.input}
                                             autoFocus
                                             onClick={(e) => e.stopPropagation()}
                                         />
                                     ) : (
                                         <div className={styles.mapTitleWrapper}>
-                                            {currentMapId === map.id ? (
+                                            {selectedId === item.id ? (
                                                 <div className={styles.tickerTrack}>
                                                     <div className={styles.tickerSequence}>
-                                                        <span className={styles.tickerText}>{map.title}</span>
+                                                        <span className={styles.tickerText}>{item.title}</span>
                                                     </div>
                                                     <div className={styles.tickerSequence}>
-                                                        <span className={styles.tickerText}>{map.title}</span>
+                                                        <span className={styles.tickerText}>{item.title}</span>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <span className={styles.mapTitle}>{map.title}</span>
+                                                <span className={styles.mapTitle}>{item.title}</span>
                                             )}
                                         </div>
                                     )
                                 )}
                             </div>
 
-                            {!isCollapsed && (hoveredMapId === map.id || currentMapId === map.id) && (
+                            {!isCollapsed && item.sidebarType === 'map' && (hoveredMapId === item.id || selectedId === item.id) && (
                                 <div className={styles.actions}>
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleEditStart(map);
+                                            handleEditStart(item as MapData);
                                         }}
                                         className={styles.actionButton}
                                     >
@@ -434,10 +453,10 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            summarizeMap(map.id, map.title);
+                                            summarizeMap(item.id, item.title!);
                                         }}
                                         className={styles.actionButton}
-                                        disabled={summarizingMapId === map.id}
+                                        disabled={summarizingMapId === item.id}
                                         title="정리 보기"
                                     >
                                         <ListTree size={12} />
@@ -453,17 +472,17 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                                                 tone: "danger"
                                             });
                                             if (!confirmed) return;
-                                            if (currentMapId === map.id) {
-                                                const currentIndex = maps.findIndex(m => m.id === map.id);
-                                                let nextMapId = null;
+                                            if (selectedId === item.id) {
+                                                const currentIndex = maps.findIndex(m => m.id === item.id);
+                                                let nextId = null;
                                                 if (currentIndex < maps.length - 1) {
-                                                    nextMapId = maps[currentIndex + 1].id;
+                                                    nextId = maps[currentIndex + 1].id;
                                                 } else if (currentIndex > 0) {
-                                                    nextMapId = maps[currentIndex - 1].id;
+                                                    nextId = maps[currentIndex - 1].id;
                                                 }
-                                                onSelectMap(nextMapId);
+                                                onSelect(nextId, 'map');
                                             }
-                                            deleteMap(map.id);
+                                            deleteMap(item.id);
                                         }}
                                         className={styles.actionButton}
                                         style={{ color: '#d63031' }}
