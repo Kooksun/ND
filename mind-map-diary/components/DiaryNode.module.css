@@ -123,44 +123,30 @@
     border-color: #0984e3;
 }
 
-.actions {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    margin-top: 12px;
-}
-
-.btn {
-    flex: 1;
-    padding: 6px 12px;
+.topDeleteBtn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 6px;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    background: transparent;
+    color: #b2bec3;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    z-index: 10;
 }
 
-.saveBtn {
-    background: #0984e3;
-    color: white;
-}
-
-.saveBtn:hover {
-    background: #0076cf;
-}
-
-.deleteBtn {
-    background: #ffeaa7;
+.topDeleteBtn:hover {
     color: #d63031;
+    background: rgba(214, 48, 49, 0.1);
 }
 
-.deleteBtn:hover {
-    background: #fdcb6e;
+:global(body.dark) .topDeleteBtn:hover {
+    background: rgba(214, 48, 49, 0.2);
 }
 
 .actionContainer {

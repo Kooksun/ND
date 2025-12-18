@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Plus, Trash2, Check, Wand2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
 import { useModal } from '@/contexts/ModalContext';
 import { generateIdeas } from '@/utils/gemini';
 import styles from './DiaryNode.module.css';
@@ -20,21 +20,20 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
         setContent(data.data?.content || data.content || "");
     }, [data.label, data.data, data.content]);
 
-    // Reset editing state when node is deselected
-    useEffect(() => {
-        if (!selected) {
-            setIsEditing(false);
-            setEditStartWidth(null);
-        }
-    }, [selected]);
-
-    const handleSave = useCallback(async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleSave = useCallback(async () => {
         if (data.onUpdateContent) {
             await data.onUpdateContent(id, title, content);
         }
-        setIsEditing(false); // Optionally exit edit mode on save
+        setIsEditing(false);
     }, [data, id, title, content]);
+
+    // Reset editing state when node is deselected and auto-save
+    useEffect(() => {
+        if (!selected && isEditing) {
+            handleSave();
+            setEditStartWidth(null);
+        }
+    }, [selected, isEditing, handleSave]);
 
     const handleDelete = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -137,6 +136,13 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
             <div className={styles.content}>
                 {isEditing ? (
                     <>
+                        <button
+                            className={`${styles.topDeleteBtn} nodrag`}
+                            onClick={handleDelete}
+                            title="삭제"
+                        >
+                            <Trash2 size={16} />
+                        </button>
                         <input
                             className={`${styles.titleInput} nodrag`} // Prevents dragging the node when interacting with input
                             value={title}
@@ -149,14 +155,6 @@ const DiaryNode = ({ data, isConnectable, selected, id }: NodeProps) => {
                             onChange={(e) => setContent(e.target.value)}
                             placeholder="내용을 입력하세요..."
                         />
-                        <div className={styles.actions}>
-                            <button className={`${styles.btn} ${styles.deleteBtn}`} onClick={handleDelete} title="삭제">
-                                <Trash2 size={14} /> 삭제
-                            </button>
-                            <button className={`${styles.btn} ${styles.saveBtn}`} onClick={handleSave} title="저장">
-                                <Check size={14} /> 저장
-                            </button>
-                        </div>
                     </>
                 ) : (
                     <>
