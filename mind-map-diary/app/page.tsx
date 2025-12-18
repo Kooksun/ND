@@ -15,7 +15,7 @@ import { summarizeDiary } from "@/utils/gemini";
 export default function Home() {
   const { user, loading } = useAuth();
   const { maps, createMap, updateMapTitle, deleteMap, updateMapMetadata } = useMaps();
-  const { reports, loadingReports } = useReports(maps);
+  const { reports, loadingReports, deleteReport } = useReports(maps);
   const router = useRouter();
   const modal = useModal();
 
@@ -146,9 +146,10 @@ export default function Home() {
   };
 
   const handleDelete = async () => {
-    if (!selectedId || isDeleting || selectedType !== 'map') return;
+    if (!selectedId || isDeleting) return;
+    const typeLabel = selectedType === 'map' ? '페이지를' : '보고서를';
     const confirmed = await modal.confirm({
-      title: "페이지를 삭제할까요?",
+      title: `${typeLabel} 삭제할까요?`,
       message: "삭제 후에는 복구가 어려워요.",
       confirmText: "삭제하기",
       cancelText: "취소",
@@ -157,15 +158,27 @@ export default function Home() {
     if (!confirmed) return;
     setIsDeleting(true);
     try {
-      const currentIndex = maps.findIndex(m => m.id === selectedId);
-      let nextId: string | null = null;
-      if (currentIndex < maps.length - 1) {
-        nextId = maps[currentIndex + 1].id;
-      } else if (currentIndex > 0) {
-        nextId = maps[currentIndex - 1].id;
+      if (selectedType === 'map') {
+        const currentIndex = maps.findIndex(m => m.id === selectedId);
+        let nextId: string | null = null;
+        if (currentIndex < maps.length - 1) {
+          nextId = maps[currentIndex + 1].id;
+        } else if (currentIndex > 0) {
+          nextId = maps[currentIndex - 1].id;
+        }
+        await deleteMap(selectedId);
+        handleSelect(nextId, 'map');
+      } else {
+        const currentIndex = reports.findIndex(r => r.id === selectedId);
+        let nextId: string | null = null;
+        if (currentIndex < reports.length - 1) {
+          nextId = reports[currentIndex + 1].id;
+        } else if (currentIndex > 0) {
+          nextId = reports[currentIndex - 1].id;
+        }
+        await deleteReport(selectedId);
+        handleSelect(nextId, 'report');
       }
-      await deleteMap(selectedId);
-      handleSelect(nextId, 'map');
     } finally {
       setIsDeleting(false);
     }
@@ -185,51 +198,53 @@ export default function Home() {
         onSelect={handleSelect}
         onNewMap={handleNewMap}
         reports={reports}
+        deleteReport={deleteReport}
       />
       <div style={{ flex: 1, position: 'relative', height: '100%', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <h1 style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: '#2d3436',
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            padding: '4px 12px',
-            borderRadius: '8px',
-            backdropFilter: 'blur(4px)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-          }}>
-            {selectedType === 'map' && currentMap?.emotion && <span style={{ marginRight: 8 }}>{currentMap.emotion}</span>}
-            {selectedType === 'report' && currentReport?.emotion && <span style={{ marginRight: 8 }}>{currentReport.emotion}</span>}
-            {selectedType === 'map' ? (currentMap?.title || "Mind Map Diary") : (currentReport?.periodDisplay || "Report")}
-          </h1>
-          {selectedType === 'map' && selectedId && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={handleTitleEdit}
-                style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: 'pointer' }}
-                title="제목 수정"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                onClick={() => handleSummary()}
-                style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: isSummarizing ? 'progress' : 'pointer', opacity: isSummarizing ? 0.7 : 1 }}
-                disabled={isSummarizing}
-                title="정리 보기"
-              >
-                <ListTree size={14} />
-              </button>
-              <button
-                onClick={handleDelete}
-                style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: isDeleting ? 'progress' : 'pointer', opacity: isDeleting ? 0.7 : 1 }}
-                disabled={isDeleting}
-                title="삭제"
-              >
-                <Trash2 size={14} color="#d63031" />
-              </button>
-            </div>
-          )}
-        </div>
+        {selectedType === 'map' && (
+          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: '#2d3436',
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              padding: '4px 12px',
+              borderRadius: '8px',
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+            }}>
+              {currentMap?.emotion && <span style={{ marginRight: 8 }}>{currentMap.emotion}</span>}
+              {currentMap?.title || "Mind Map Diary"}
+            </h1>
+            {selectedId && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={handleTitleEdit}
+                  style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: 'pointer' }}
+                  title="제목 수정"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  onClick={() => handleSummary()}
+                  style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: isSummarizing ? 'progress' : 'pointer', opacity: isSummarizing ? 0.7 : 1 }}
+                  disabled={isSummarizing}
+                  title="정리 보기"
+                >
+                  <ListTree size={14} />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: isDeleting ? 'progress' : 'pointer', opacity: isDeleting ? 0.7 : 1 }}
+                  disabled={isDeleting}
+                  title="삭제"
+                >
+                  <Trash2 size={14} color="#d63031" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {selectedType === 'map' ? (
           <MindMap mapId={selectedId} key={selectedId || "empty"} />

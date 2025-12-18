@@ -20,9 +20,10 @@ interface SidebarProps {
     onSelect: (id: string | null, type: 'map' | 'report') => void;
     onNewMap: (type?: 'blank' | 'daily') => void;
     reports: ReportData[];
+    deleteReport: (id: string) => Promise<void>;
 }
 
-export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, reports }: SidebarProps) {
+export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, reports, deleteReport }: SidebarProps) {
     const { maps, loading, deleteMap, updateMapTitle, updateMapMetadata } = useMaps();
     const { user, logout } = useAuth();
     const modal = useModal();
@@ -439,56 +440,89 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
                                 )}
                             </div>
 
-                            {!isCollapsed && item.sidebarType === 'map' && (hoveredMapId === item.id || selectedId === item.id) && (
+                            {!isCollapsed && (hoveredMapId === item.id || selectedId === item.id) && (
                                 <div className={styles.actions}>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditStart(item as MapData);
-                                        }}
-                                        className={styles.actionButton}
-                                    >
-                                        <Edit2 size={12} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            summarizeMap(item.id, item.title!);
-                                        }}
-                                        className={styles.actionButton}
-                                        disabled={summarizingMapId === item.id}
-                                        title="정리 보기"
-                                    >
-                                        <ListTree size={12} />
-                                    </button>
-                                    <button
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const confirmed = await modal.confirm({
-                                                title: "페이지를 삭제할까요?",
-                                                message: "삭제 후에는 복구가 어려워요.",
-                                                confirmText: "삭제하기",
-                                                cancelText: "취소",
-                                                tone: "danger"
-                                            });
-                                            if (!confirmed) return;
-                                            if (selectedId === item.id) {
-                                                const currentIndex = maps.findIndex(m => m.id === item.id);
-                                                let nextId = null;
-                                                if (currentIndex < maps.length - 1) {
-                                                    nextId = maps[currentIndex + 1].id;
-                                                } else if (currentIndex > 0) {
-                                                    nextId = maps[currentIndex - 1].id;
+                                    {item.sidebarType === 'map' ? (
+                                        <>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEditStart(item as MapData);
+                                                }}
+                                                className={styles.actionButton}
+                                            >
+                                                <Edit2 size={12} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    summarizeMap(item.id, item.title!);
+                                                }}
+                                                className={styles.actionButton}
+                                                disabled={summarizingMapId === item.id}
+                                                title="정리 보기"
+                                            >
+                                                <ListTree size={12} />
+                                            </button>
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const confirmed = await modal.confirm({
+                                                        title: "페이지를 삭제할까요?",
+                                                        message: "삭제 후에는 복구가 어려워요.",
+                                                        confirmText: "삭제하기",
+                                                        cancelText: "취소",
+                                                        tone: "danger"
+                                                    });
+                                                    if (!confirmed) return;
+                                                    if (selectedId === item.id) {
+                                                        const currentIndex = maps.findIndex(m => m.id === item.id);
+                                                        let nextId = null;
+                                                        if (currentIndex < maps.length - 1) {
+                                                            nextId = maps[currentIndex + 1].id;
+                                                        } else if (currentIndex > 0) {
+                                                            nextId = maps[currentIndex - 1].id;
+                                                        }
+                                                        onSelect(nextId, 'map');
+                                                    }
+                                                    deleteMap(item.id);
+                                                }}
+                                                className={styles.actionButton}
+                                                style={{ color: '#d63031' }}
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                const confirmed = await modal.confirm({
+                                                    title: "보고서를 삭제할까요?",
+                                                    message: "삭제 후에는 복구가 어려워요.",
+                                                    confirmText: "삭제하기",
+                                                    cancelText: "취소",
+                                                    tone: "danger"
+                                                });
+                                                if (!confirmed) return;
+                                                if (selectedId === item.id) {
+                                                    const currentIndex = reports.findIndex(r => r.id === item.id);
+                                                    let nextId = null;
+                                                    if (currentIndex < reports.length - 1) {
+                                                        nextId = reports[currentIndex + 1].id;
+                                                    } else if (currentIndex > 0) {
+                                                        nextId = reports[currentIndex - 1].id;
+                                                    }
+                                                    onSelect(nextId, 'report');
                                                 }
-                                                onSelect(nextId, 'map');
-                                            }
-                                            deleteMap(item.id);
-                                        }}
-                                        className={styles.actionButton}
-                                        style={{ color: '#d63031' }}
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
+                                                deleteReport(item.id);
+                                            }}
+                                            className={styles.actionButton}
+                                            style={{ color: '#d63031' }}
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

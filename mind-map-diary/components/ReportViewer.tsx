@@ -10,19 +10,27 @@ interface ReportViewerProps {
 }
 
 export default function ReportViewer({ report }: ReportViewerProps) {
-    // Markdown-like simple parsing for thematic content (assuming AI uses '###' or similar)
+    // Markdown-like simple parsing for thematic content
     const formatContent = (text: string) => {
-        return text.split('\n').map((line, i) => {
-            if (line.startsWith('###')) {
-                return <h3 key={i} className={styles.contentH3}>{line.replace(/###/g, '').trim()}</h3>;
-            }
-            if (line.startsWith('##')) {
-                return <h2 key={i} className={styles.contentH2}>{line.replace(/##/g, '').trim()}</h2>;
-            }
-            if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
-                return <li key={i} className={styles.contentLi}>{line.trim().substring(1).trim()}</li>;
-            }
-            return line.trim() ? <p key={i} className={styles.contentP}>{line}</p> : <br key={i} />;
+        // First split into blocks by double newlines for clear paragraph separation
+        return text.split('\n\n').flatMap((block, i) => {
+            const lines = block.split('\n');
+            const elements = lines.map((line, j) => {
+                const key = `${i}-${j}`;
+                if (line.startsWith('###')) {
+                    return <h3 key={key} className={styles.contentH3}>{line.replace(/###/g, '').trim()}</h3>;
+                }
+                if (line.startsWith('##')) {
+                    return <h2 key={key} className={styles.contentH2}>{line.replace(/##/g, '').trim()}</h2>;
+                }
+                if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
+                    return <li key={key} className={styles.contentLi}>{line.trim().substring(1).trim()}</li>;
+                }
+                return line.trim() ? <p key={key} className={styles.contentP}>{line}</p> : null;
+            }).filter(Boolean);
+
+            // Add a small spacer between blocks if needed
+            return elements;
         });
     };
 
@@ -41,7 +49,6 @@ export default function ReportViewer({ report }: ReportViewerProps) {
             </header>
 
             <div className={styles.summaryBox}>
-                <Sparkles className={styles.summaryIcon} size={20} />
                 <p className={styles.summaryText}>{report.summary}</p>
             </div>
 

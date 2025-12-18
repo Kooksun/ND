@@ -3,6 +3,34 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
+/**
+ * Retries a Gemini API call with exponential backoff on 429 errors.
+ */
+async function callGeminiWithRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelay: number = 2000
+): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            lastError = error;
+            const isQuotaExceeded = error?.message?.includes("429") || error?.status === 429;
+
+            if (isQuotaExceeded && i < maxRetries - 1) {
+                const delay = initialDelay * Math.pow(2, i);
+                console.warn(`Gemini Quota Exceeded. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw lastError;
+}
+
 export const generateIdeas = async (
     topic: string,
     contextPath: string[] = [],
@@ -14,22 +42,19 @@ export const generateIdeas = async (
         throw new Error("Gemini API Key is missing");
     }
 
-    try {
+    return callGeminiWithRetry(async () => {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        // Construct context string
         const contextStr = contextPath.length > 0
             ? `Context (path from root): ${contextPath.join(" > ")} > ${topic}`
             : `Topic: ${topic}`;
 
-        // Construct exclusion string
         const exclusionStr = existingChildren.length > 0
             ? `Exclude these existing ideas: ${existingChildren.join(", ")}`
             : "";
 
         const contentStr = content ? `Node Content: "${content}"` : "";
 
-        // Prompt engineering for structured output
         const prompt = `
     You are a creative assistant helping to brainstorm for a mind map.
     ${contextStr}
@@ -47,27 +72,21 @@ export const generateIdeas = async (
         const response = await result.response;
         const text = response.text();
 
-        // Parse the comma-separated list
         const ideas = text.split(',').map(idea => idea.trim()).filter(idea => idea.length > 0);
-
-        return ideas.slice(0, 3); // Ensure maximum 3 items
-    } catch (error) {
-        console.error("Error generating ideas with Gemini:", error);
-        throw error;
-    }
+        return ideas.slice(0, 3);
+    });
 };
 
 export const summarizeDiary = async (
     markdownContent: string
 ): Promise<{ summary: string; emotion: string }> => {
-    if (!API_KEY) {
-        throw new Error("Gemini API Key is missing");
-    }
+    if (!API_KEY) throw new Error("Gemini API Key is missing");
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        return await callGeminiWithRetry(async () => {
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        const prompt = `
+            const prompt = `
     You are a warm, empathetic diary assistant. 
     Below is a mind map of someone's day in Markdown format:
     
@@ -85,18 +104,18 @@ export const summarizeDiary = async (
     
     Return ONLY the JSON string. Do not include markdown blocks or any other text.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
 
-        // Clean up the response just in case it's wrapped in markdown code blocks
-        const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
-        const data = JSON.parse(cleanedText);
+            const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
+            const data = JSON.parse(cleanedText);
 
-        return {
-            summary: data.summary || "내용을 요약하지 못했어요.",
-            emotion: data.emotion || "📝"
-        };
+            return {
+                summary: data.summary || "내용을 요약하지 못했어요.",
+                emotion: data.emotion || "📝"
+            };
+        });
     } catch (error) {
         console.error("Error summarizing diary with Gemini:", error);
         return {
@@ -120,7 +139,7 @@ export const generateReport = async (
 ): Promise<ReportResult> => {
     if (!API_KEY) throw new Error("Gemini API Key is missing");
 
-    try {
+    return callGeminiWithRetry(async () => {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `
@@ -130,8 +149,10 @@ export const generateReport = async (
     ${markdownContent}
     
     Task: Analyze this period and provide a 2-phase report.
-    1. **Chronological Analysis (시간순 분석)**: A narrative reconstruction of how the period unfolded. Focus on the flow of events and emotional changes over time.
+    1. **Chronological Analysis (시간순 분석)**: A narrative reconstruction of how the period unfolded. Focus on the flow of events and emotional changes over time. 
+       - IMPORTANT: Use at least 2-3 distinct paragraphs (separate with \\n\\n) to ensure readability. Avoid one large block of text.
     2. **Thematic Analysis (테마별 분석)**: Group the activities and thoughts into 3-4 major themes or pillars (e.g., Growth, Health, Relationship, Work).
+       - Use clear headings and bullet points.
     3. **Executive Summary**: A brief, powerful, and encouraging overview (2-3 sentences).
     4. **Representative Emoji**: ONE emoji representing the core essence of this period.
 
@@ -160,8 +181,5 @@ export const generateReport = async (
             summary: data.summary || "전체 요약을 생성하지 못했습니다.",
             emotion: data.emotion || "📊"
         };
-    } catch (error) {
-        console.error("Error generating report with Gemini:", error);
-        throw error;
-    }
+    });
 };
