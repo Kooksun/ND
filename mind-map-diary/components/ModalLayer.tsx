@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useMemo, useRef } from "react";
 import { AlertTriangle, CheckCircle2, Info, ShieldAlert } from "lucide-react";
 import styles from "./ModalLayer.module.css";
 
-type Tone = "info" | "success" | "warning" | "danger";
+type Tone = "info" | "success" | "warning" | "danger" | "loading";
 
 interface ModalLayerProps {
     open: boolean;
@@ -29,6 +29,7 @@ const toneMap: Record<Tone, { color: string; icon: ReactNode; badge: string; }> 
     success: { color: "#22c55e", icon: <CheckCircle2 size={22} />, badge: "완료" },
     warning: { color: "#f59e0b", icon: <AlertTriangle size={22} />, badge: "확인" },
     danger: { color: "#ef4444", icon: <ShieldAlert size={22} />, badge: "주의" },
+    loading: { color: "#636e72", icon: <div className={styles.spinner} />, badge: "진행 중" },
 };
 
 export default function ModalLayer({
@@ -103,17 +104,19 @@ export default function ModalLayer({
                     )}
 
                     <div className={styles.actions}>
-                        {showCancel && (
+                        {showCancel && tone !== "loading" && (
                             <button className={`${styles.button} ${styles.secondary}`} onClick={onCancel}>
                                 {cancelText}
                             </button>
                         )}
-                        <button
-                            className={`${styles.button} ${tone === "danger" ? styles.danger : styles.primary}`}
-                            onClick={onConfirm}
-                        >
-                            {confirmText}
-                        </button>
+                        {tone !== "loading" && (
+                            <button
+                                className={`${styles.button} ${tone === "danger" ? styles.danger : styles.primary}`}
+                                onClick={onConfirm}
+                            >
+                                {confirmText}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

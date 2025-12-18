@@ -4,7 +4,7 @@ import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, 
 import { createPortal } from "react-dom";
 import ModalLayer from "@/components/ModalLayer";
 
-type Tone = "info" | "success" | "warning" | "danger";
+type Tone = "info" | "success" | "warning" | "danger" | "loading";
 type Mode = "alert" | "confirm" | "prompt";
 
 interface ModalOptions {

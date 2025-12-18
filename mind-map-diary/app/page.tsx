@@ -8,10 +8,11 @@ import Sidebar from "@/components/Sidebar";
 import { useMaps } from "@/hooks/useMaps";
 import { Edit2, ListTree, Trash2 } from "lucide-react";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
+import { summarizeDiary } from "@/utils/gemini";
 
 export default function Home() {
   const { user, loading } = useAuth();
-  const { maps, createMap, updateMapTitle, deleteMap } = useMaps();
+  const { maps, createMap, updateMapTitle, deleteMap, updateMapMetadata } = useMaps();
   const router = useRouter();
   const modal = useModal();
   const [currentMapId, setCurrentMapId] = useState<string | null>(null);
@@ -57,13 +58,46 @@ export default function Home() {
     }
   };
 
-  const handleSummary = async () => {
+  const handleSummary = async (forceRegenerate = false) => {
     if (!user || !currentMapId) return;
+    const map = maps.find(m => m.id === currentMapId);
+    const mapTitle = map?.title || "제목 없음";
+
+    // If summary exists and not forcing regeneration, show it first
+    if (map?.summary && !forceRegenerate) {
+      const wantRegenerate = await modal.confirm({
+        title: `${map.emotion || "📝"} ${mapTitle} 정리`,
+        message: map.summary,
+        confirmText: "닫기",
+        cancelText: "다시 정리하기",
+        tone: "success",
+        showCancel: true
+      });
+
+      // If user clicked "다시 정리하기" (cancelText returns false in modal.confirm)
+      if (!wantRegenerate) {
+        handleSummary(true);
+      }
+      return;
+    }
+
     setIsSummarizing(true);
-    const mapTitle = maps.find(m => m.id === currentMapId)?.title || "제목 없음";
+    // Show a non-blocking loading modal
+    const loadingModal = modal.show({
+      title: "AI 정리 중",
+      message: "AI가 소중한 기록들을 따뜻하게 정리하고 있어요. 잠시만 기다려 주세요.",
+      tone: "loading",
+      allowDismiss: false
+    });
+
     try {
-      const summaryBody = await buildMarkdownSummary(user.uid, currentMapId);
-      if (!summaryBody || summaryBody.trim().length === 0) {
+      // 1. Build Markdown from nodes
+      const markdownBody = await buildMarkdownSummary(user.uid, currentMapId);
+      if (!markdownBody || markdownBody.trim().length === 0) {
+        setIsSummarizing(false);
+        // Important: we need to dismiss the loading modal before showing the alert
+        // But since we can't easily dismiss it with the current useModal, 
+        // I will assume the next modal will replace it.
         await modal.alert({
           title: "정리할 노드가 없어요",
           message: "노드 내용이 비어 있어 정리할 수 없습니다.",
@@ -72,25 +106,21 @@ export default function Home() {
         });
         return;
       }
-      const summaryText = `# ${mapTitle}\n\n${summaryBody}`;
-      try {
-        await navigator.clipboard.writeText(summaryText);
-        await modal.alert({
-          title: `${mapTitle} 정리 완료`,
-          message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
-          details: summaryText,
-          tone: "success",
-          confirmText: "확인"
-        });
-      } catch {
-        await modal.alert({
-          title: `${mapTitle} 정리 내용`,
-          message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
-          details: summaryText,
-          tone: "info",
-          confirmText: "닫기"
-        });
-      }
+
+      // 2. AI Summarization & Emotion Analysis
+      const { summary, emotion } = await summarizeDiary(markdownBody);
+
+      // 3. Save result back to map metadata
+      await updateMapMetadata(currentMapId, { summary, emotion });
+
+      // 4. Show final result (this will replace the loading modal)
+      await modal.alert({
+        title: `${emotion} ${mapTitle} 정리 완료`,
+        message: summary,
+        tone: "success",
+        confirmText: "확인"
+      });
+
     } catch (error) {
       console.error("Failed to summarize map:", error);
       await modal.alert({
@@ -152,6 +182,7 @@ export default function Home() {
             backdropFilter: 'blur(4px)',
             boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
           }}>
+            {maps.find(m => m.id === currentMapId)?.emotion && <span style={{ marginRight: 8 }}>{maps.find(m => m.id === currentMapId)?.emotion}</span>}
             {maps.find(m => m.id === currentMapId)?.title || "Mind Map Diary"}
           </h1>
           {currentMapId && (
@@ -164,7 +195,7 @@ export default function Home() {
                 <Edit2 size={14} />
               </button>
               <button
-                onClick={handleSummary}
+                onClick={() => handleSummary()}
                 style={{ padding: '8px', borderRadius: 8, border: '1px solid #e1e1e1', background: 'white', cursor: isSummarizing ? 'progress' : 'pointer', opacity: isSummarizing ? 0.7 : 1 }}
                 disabled={isSummarizing}
                 title="정리 보기"

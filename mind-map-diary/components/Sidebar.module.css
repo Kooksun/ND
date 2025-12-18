@@ -222,6 +222,20 @@
     gap: 0;
 }
 
+.iconContainer {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.emotionEmoji {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
 .mapTitle {
     white-space: nowrap;
     overflow: hidden;

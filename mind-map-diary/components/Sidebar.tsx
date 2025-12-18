@@ -8,6 +8,7 @@ import { useModal } from "@/contexts/ModalContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import styles from "./Sidebar.module.css";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
+import { summarizeDiary } from "@/utils/gemini";
 
 interface SidebarProps {
     currentMapId: string | null;
@@ -16,7 +17,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: SidebarProps) {
-    const { maps, loading, deleteMap, updateMapTitle } = useMaps();
+    const { maps, loading, deleteMap, updateMapTitle, updateMapMetadata } = useMaps();
     const { user, logout } = useAuth();
     const modal = useModal();
     const [editingMapId, setEditingMapId] = useState<string | null>(null);
@@ -71,12 +72,40 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
         }
     };
 
-    const summarizeMap = async (mapId: string, mapTitle: string) => {
+    const summarizeMap = async (mapId: string, mapTitle: string, forceRegenerate = false) => {
         if (!user) return;
+        const map = maps.find(m => m.id === mapId);
+
+        // If summary exists and not forcing regeneration, show it first
+        if (map?.summary && !forceRegenerate) {
+            const wantRegenerate = await modal.confirm({
+                title: `${map.emotion || "📝"} ${mapTitle} 정리`,
+                message: map.summary,
+                confirmText: "닫기",
+                cancelText: "다시 정리하기",
+                tone: "success",
+                showCancel: true
+            });
+
+            // If user clicked "다시 정리하기" (cancelText returns false in modal.confirm)
+            if (!wantRegenerate) {
+                summarizeMap(mapId, mapTitle, true);
+            }
+            return;
+        }
+
         setSummarizingMapId(mapId);
+        // Show a non-blocking loading modal
+        modal.show({
+            title: "AI 정리 중",
+            message: "AI가 소중한 기록들을 따뜻하게 정리하고 있어요. 잠시만 기다려 주세요.",
+            tone: "loading",
+            allowDismiss: false
+        });
+
         try {
-            const summaryBody = await buildMarkdownSummary(user.uid, mapId);
-            if (!summaryBody || summaryBody.trim().length === 0) {
+            const markdownBody = await buildMarkdownSummary(user.uid, mapId);
+            if (!markdownBody || markdownBody.trim().length === 0) {
                 await modal.alert({
                     title: "정리할 노드가 없어요",
                     message: "노드 내용이 비어 있어 정리할 수 없습니다.",
@@ -85,26 +114,16 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                 });
                 return;
             }
-            const summaryText = `# ${mapTitle}\n\n${summaryBody}`;
 
-            try {
-                await navigator.clipboard.writeText(summaryText);
-                await modal.alert({
-                    title: `${mapTitle} 정리 완료`,
-                    message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
-                    details: summaryText,
-                    tone: "success",
-                    confirmText: "확인"
-                });
-            } catch {
-                await modal.alert({
-                    title: `${mapTitle} 정리 내용`,
-                    message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
-                    details: summaryText,
-                    tone: "info",
-                    confirmText: "닫기"
-                });
-            }
+            const { summary, emotion } = await summarizeDiary(markdownBody);
+            await updateMapMetadata(mapId, { summary, emotion });
+
+            await modal.alert({
+                title: `${emotion} ${mapTitle} 정리 완료`,
+                message: summary,
+                tone: "success",
+                confirmText: "확인"
+            });
         } catch (error) {
             console.error("Failed to summarize map:", error);
             await modal.alert({
@@ -224,25 +243,15 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                 return;
             }
 
-            const combined = summaries.join("\n\n");
-            try {
-                await navigator.clipboard.writeText(combined);
-                await modal.alert({
-                    title: `${selectedDate} 정리 완료`,
-                    message: "클립보드에 복사했어요. 필요할 때 붙여넣기 해보세요.",
-                    details: combined,
-                    tone: "success",
-                    confirmText: "확인"
-                });
-            } catch {
-                await modal.alert({
-                    title: `${selectedDate} 정리 내용`,
-                    message: "브라우저에서 자동 복사가 차단되어 직접 복사해야 합니다.",
-                    details: combined,
-                    tone: "info",
-                    confirmText: "닫기"
-                });
-            }
+            const combinedMarkdown = summaries.join("\n\n");
+            const { summary, emotion } = await summarizeDiary(combinedMarkdown);
+
+            await modal.alert({
+                title: `${emotion} ${selectedDate} 통합 정리`,
+                message: summary,
+                tone: "success",
+                confirmText: "확인"
+            });
         } catch (error) {
             console.error("Failed to summarize maps by date:", error);
             await modal.alert({
@@ -355,7 +364,13 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
                             data-tooltip={isCollapsed ? map.title : undefined}
                         >
                             <div className={styles.itemLeft}>
-                                <MapIcon size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
+                                <div className={styles.iconContainer}>
+                                    {map.emotion ? (
+                                        <span className={styles.emotionEmoji}>{map.emotion}</span>
+                                    ) : (
+                                        <MapIcon size={18} color={currentMapId === map.id ? "#0984e3" : "#b2bec3"} />
+                                    )}
+                                </div>
                                 {!isCollapsed && (
                                     editingMapId === map.id ? (
                                         <input

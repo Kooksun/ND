@@ -9,6 +9,8 @@ export interface MapData {
     createdAt?: any;
     updatedAt?: any;
     type?: 'blank' | 'daily' | string;
+    emotion?: string;
+    summary?: string;
 }
 
 export const useMaps = () => {
@@ -24,7 +26,7 @@ export const useMaps = () => {
         }
 
         const mapsRef = collection(db, "users", user.uid, "maps");
-        const q = query(mapsRef, orderBy("updatedAt", "desc"));
+        const q = query(mapsRef, orderBy("createdAt", "desc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedMaps = snapshot.docs.map(doc => ({
@@ -139,11 +141,21 @@ export const useMaps = () => {
         await deleteDoc(doc(db, "users", user.uid, "maps", mapId));
     }
 
+    const updateMapMetadata = async (mapId: string, metadata: { emotion?: string; summary?: string }) => {
+        if (!user) return;
+        const mapRef = doc(db, "users", user.uid, "maps", mapId);
+        await updateDoc(mapRef, {
+            ...metadata,
+            updatedAt: serverTimestamp()
+        });
+    };
+
     return {
         maps,
         loading,
         createMap,
         updateMapTitle,
+        updateMapMetadata,
         deleteMap
     };
 };

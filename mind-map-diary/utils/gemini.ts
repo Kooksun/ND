@@ -56,3 +56,53 @@ export const generateIdeas = async (
         throw error;
     }
 };
+
+export const summarizeDiary = async (
+    markdownContent: string
+): Promise<{ summary: string; emotion: string }> => {
+    if (!API_KEY) {
+        throw new Error("Gemini API Key is missing");
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+    You are a warm, empathetic diary assistant. 
+    Below is a mind map of someone's day in Markdown format:
+    
+    ${markdownContent}
+    
+    Task:
+    1. Write a 3-4 sentence summary of their day in a warm, encouraging, and supportive tone (Korean).
+    2. Pick ONE emoji that best represents the overall emotion/mood of the day.
+    
+    Return the result in JSON format like this:
+    {
+      "summary": "오늘 정말 고생 많으셨어요...",
+      "emotion": "😊"
+    }
+    
+    Return ONLY the JSON string. Do not include markdown blocks or any other text.`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Clean up the response just in case it's wrapped in markdown code blocks
+        const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
+        const data = JSON.parse(cleanedText);
+
+        return {
+            summary: data.summary || "내용을 요약하지 못했어요.",
+            emotion: data.emotion || "📝"
+        };
+    } catch (error) {
+        console.error("Error summarizing diary with Gemini:", error);
+        return {
+            summary: "요약 중 오류가 발생했습니다.",
+            emotion: "⚠️"
+        };
+    }
+};
+
