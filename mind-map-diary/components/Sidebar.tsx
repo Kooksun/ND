@@ -221,7 +221,23 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             });
             return;
         }
+
+        // If only one map found, use the standard individual summary process
+        if (matches.length === 1) {
+            summarizeMap(matches[0].id, matches[0].title || "제목 없음");
+            setIsDateModalOpen(false);
+            return;
+        }
+
         setIsDateSummarizing(true);
+        // Show a non-blocking loading modal for unified summary
+        modal.show({
+            title: "통합 정리 중",
+            message: "여러 개의 기록들을 하나로 아름답게 엮고 있어요. 잠시만 기다려 주세요.",
+            tone: "loading",
+            allowDismiss: false
+        });
+
         try {
             const ordered = [...matches].sort((a, b) => getMapTimestamp(a) - getMapTimestamp(b));
             const summaries: string[] = [];
@@ -247,11 +263,12 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             const { summary, emotion } = await summarizeDiary(combinedMarkdown);
 
             await modal.alert({
-                title: `${emotion} ${selectedDate} 통합 정리`,
+                title: `${emotion} ${selectedDate} 통합 정리 완료`,
                 message: summary,
                 tone: "success",
                 confirmText: "확인"
             });
+            setIsDateModalOpen(false);
         } catch (error) {
             console.error("Failed to summarize maps by date:", error);
             await modal.alert({
@@ -264,6 +281,7 @@ export default function Sidebar({ currentMapId, onSelectMap, onNewMap }: Sidebar
             setIsDateSummarizing(false);
         }
     };
+
 
     const handleLogout = async () => {
         const confirmed = await modal.confirm({
