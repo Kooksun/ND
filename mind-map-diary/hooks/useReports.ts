@@ -134,19 +134,6 @@ export const useReports = (maps: MapData[]) => {
         if (!reports.some(r => r.periodId === monthlyPeriodId)) {
             await triggerReportGeneration('monthly', monthlyPeriodId, monthlyPeriodDisplay, lastMonthFirst.getTime(), lastMonthLast.getTime());
         }
-
-        // 3. Current Week Check (In-Progress, for testing/immediate feedback)
-        const thisMonday = new Date(now);
-        thisMonday.setDate(now.getDate() - (now.getDay() || 7) + 1);
-        thisMonday.setHours(0, 0, 0, 0);
-
-        const thisWeekNum = getWeekNumber(thisMonday);
-        const thisWeeklyPeriodId = `${thisMonday.getFullYear()}-W${String(thisWeekNum).padStart(2, '0')}-IP`;
-        const thisWeeklyPeriodDisplay = `${thisMonday.getFullYear()}년 ${thisMonday.getMonth() + 1}월 ${Math.ceil(thisMonday.getDate() / 7)}주차 (진행 중)`;
-
-        if (!reports.some(r => r.periodId === thisWeeklyPeriodId)) {
-            await triggerReportGeneration('weekly', thisWeeklyPeriodId, thisWeeklyPeriodDisplay, thisMonday.getTime(), now.getTime());
-        }
     }, [user, maps, reports, loading, triggerReportGeneration]);
 
     useEffect(() => {
