@@ -86,12 +86,12 @@ export const useMaps = () => {
                     createdAt: serverTimestamp(),
                 });
 
-                // 2. Child Nodes: "Worked", "Studied", "Played Games"
+                // 2. Child Nodes: "Worked", "Studied", "Workout"
                 // Distributed horizontally below the root (0,0)
                 const children = [
                     { label: "일을 했다", x: -180, color: '#ff7675' },
                     { label: "공부를 했다", x: 0, color: '#74b9ff' },
-                    { label: "게임을 했다", x: 180, color: '#55efc4' }
+                    { label: "운동을 했다", x: 180, color: '#55efc4' }
                 ];
 
                 children.forEach((child) => {
