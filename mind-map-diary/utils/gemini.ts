@@ -1,12 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Groq } from 'groq-sdk';
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
+const API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
+const groq = new Groq({ apiKey: API_KEY, dangerouslyAllowBrowser: true });
 
 /**
- * Retries a Gemini API call with exponential backoff on 429 errors.
+ * Retries a Groq API call with exponential backoff on 429 errors.
  */
-async function callGeminiWithRetry<T>(
+async function callGroqWithRetry<T>(
     operation: () => Promise<T>,
     maxRetries: number = 3,
     initialDelay: number = 2000
@@ -17,11 +17,13 @@ async function callGeminiWithRetry<T>(
             return await operation();
         } catch (error: any) {
             lastError = error;
-            const isQuotaExceeded = error?.message?.includes("429") || error?.status === 429;
+            // Groq SDK error status is usually on the error object
+            const status = error?.status || error?.response?.status;
+            const isQuotaExceeded = status === 429 || error?.message?.includes("429");
 
             if (isQuotaExceeded && i < maxRetries - 1) {
                 const delay = initialDelay * Math.pow(2, i);
-                console.warn(`Gemini Quota Exceeded. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                console.warn(`Groq Quota Exceeded. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
             }
@@ -38,13 +40,11 @@ export const generateIdeas = async (
     content: string = ""
 ): Promise<string[]> => {
     if (!API_KEY) {
-        console.error("Gemini API Key is missing");
-        throw new Error("Gemini API Key is missing");
+        console.error("Groq API Key is missing");
+        throw new Error("Groq API Key is missing");
     }
 
-    return callGeminiWithRetry(async () => {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+    return callGroqWithRetry(async () => {
         const contextStr = contextPath.length > 0
             ? `Context (path from root): ${contextPath.join(" > ")} > ${topic}`
             : `Topic: ${topic}`;
@@ -68,10 +68,13 @@ export const generateIdeas = async (
     Example output: Idea 1, Idea 2, Idea 3
     Do not include numbering, bullets, or any other text.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "openai/gpt-oss-120b",
+            temperature: 0.7,
+        });
 
+        const text = completion.choices[0]?.message?.content || "";
         const ideas = text.split(',').map(idea => idea.trim()).filter(idea => idea.length > 0);
         return ideas.slice(0, 3);
     });
@@ -80,12 +83,10 @@ export const generateIdeas = async (
 export const summarizeDiary = async (
     markdownContent: string
 ): Promise<{ summary: string; emotion: string }> => {
-    if (!API_KEY) throw new Error("Gemini API Key is missing");
+    if (!API_KEY) throw new Error("Groq API Key is missing");
 
     try {
-        return await callGeminiWithRetry(async () => {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+        return await callGroqWithRetry(async () => {
             const prompt = `
     You are a warm, empathetic diary assistant. 
     Below is a mind map of someone's day in Markdown format:
@@ -104,12 +105,15 @@ export const summarizeDiary = async (
     
     Return ONLY the JSON string. Do not include markdown blocks or any other text.`;
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const completion = await groq.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                model: "openai/gpt-oss-120b",
+                temperature: 0.7,
+                response_format: { type: "json_object" }
+            });
 
-            const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
-            const data = JSON.parse(cleanedText);
+            const text = completion.choices[0]?.message?.content || "{}";
+            const data = JSON.parse(text);
 
             return {
                 summary: data.summary || "내용을 요약하지 못했어요.",
@@ -117,7 +121,7 @@ export const summarizeDiary = async (
             };
         });
     } catch (error) {
-        console.error("Error summarizing diary with Gemini:", error);
+        console.error("Error summarizing diary with Groq:", error);
         return {
             summary: "요약 중 오류가 발생했습니다.",
             emotion: "⚠️"
@@ -137,11 +141,9 @@ export const generateReport = async (
     period: string,
     markdownContent: string
 ): Promise<ReportResult> => {
-    if (!API_KEY) throw new Error("Gemini API Key is missing");
+    if (!API_KEY) throw new Error("Groq API Key is missing");
 
-    return callGeminiWithRetry(async () => {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+    return callGroqWithRetry(async () => {
         const prompt = `
     You are a professional yet warm and empathetic personal growth consultant.
     Below is a collection of mind map diaries for a ${type} period (${period}):
@@ -168,12 +170,15 @@ export const generateReport = async (
     
     Return ONLY the JSON string. Do not include markdown code blocks.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "openai/gpt-oss-120b",
+            temperature: 0.7,
+            response_format: { type: "json_object" }
+        });
 
-        const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
-        const data = JSON.parse(cleanedText);
+        const text = completion.choices[0]?.message?.content || "{}";
+        const data = JSON.parse(text);
 
         return {
             chronological: data.chronological || "시간순 분석을 생성하지 못했습니다.",
