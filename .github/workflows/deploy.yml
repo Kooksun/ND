@@ -41,11 +41,11 @@ jobs:
              NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
              NEXT_PUBLIC_GROQ_API_KEY: ${{ secrets.NEXT_PUBLIC_GROQ_API_KEY }}
       - name: Create .nojekyll
-        run: touch ./mind-map-diary/out/.nojekyll
+        run: touch ./mind-map-diary/out/ND/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./mind-map-diary/out
+          path: ./mind-map-diary/out/ND
 
   deploy:
     environment:
