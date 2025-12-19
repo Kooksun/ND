@@ -11,6 +11,7 @@ import ReportViewer from "@/components/ReportViewer";
 import { Edit2, ListTree, Trash2 } from "lucide-react";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
+import { toDateValue } from "@/utils/date";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -87,18 +88,23 @@ export default function Home() {
   const handleSummary = async (forceRegenerate = false) => {
     if (!user || !selectedId || selectedType !== 'map') return;
     const map = maps.find(m => m.id === selectedId);
-    const mapTitle = map?.title || "제목 없음";
+    if (!map) return;
+    const mapTitle = map.title || "제목 없음";
 
-    if (map?.summary && !forceRegenerate) {
+    const updatedAt = toDateValue(map.updatedAt)?.getTime() || 0;
+    const summarizedAt = toDateValue(map.summarizedAt)?.getTime() || 0;
+    const hasNewChanges = updatedAt > summarizedAt;
+
+    if (map.summary && !forceRegenerate && !hasNewChanges) {
       const wantRegenerate = await modal.confirm({
         title: `${map.emotion || "📝"} ${mapTitle} 정리`,
         message: map.summary,
-        confirmText: "닫기",
-        cancelText: "다시 정리하기",
+        confirmText: "다시 정리하기",
+        cancelText: "닫기",
         tone: "success",
         showCancel: true
       });
-      if (!wantRegenerate) handleSummary(true);
+      if (wantRegenerate) handleSummary(true);
       return;
     }
 

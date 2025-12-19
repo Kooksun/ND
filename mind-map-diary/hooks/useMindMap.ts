@@ -89,14 +89,22 @@ export const useMindMap = (mapId: string | null) => {
     const addNode = async (label: string, position: { x: number, y: number }) => {
         if (!user || !mapId) return null;
         try {
-            const docRef = await addDoc(collection(db, "users", user.uid, "maps", mapId, "nodes"), {
+            const batch = writeBatch(db);
+            const nodeDocRef = doc(collection(db, "users", user.uid, "maps", mapId, "nodes"));
+
+            batch.set(nodeDocRef, {
                 label,
                 position,
                 data: { label },
                 type: 'diary',
                 createdAt: serverTimestamp(),
             });
-            return docRef.id;
+
+            const mapRef = doc(db, "users", user.uid, "maps", mapId);
+            batch.update(mapRef, { updatedAt: serverTimestamp() });
+
+            await batch.commit();
+            return nodeDocRef.id;
         } catch (error) {
             console.error("Error adding node:", error);
             return null;
@@ -105,11 +113,19 @@ export const useMindMap = (mapId: string | null) => {
 
     const addNewEdge = async (source: string, target: string) => {
         if (!user || !mapId) return;
-        await addDoc(collection(db, "users", user.uid, "maps", mapId, "edges"), {
+        const batch = writeBatch(db);
+        const edgeRef = doc(collection(db, "users", user.uid, "maps", mapId, "edges"));
+
+        batch.set(edgeRef, {
             source,
             target,
             id: `e${source}-${target}`
         });
+
+        const mapRef = doc(db, "users", user.uid, "maps", mapId);
+        batch.update(mapRef, { updatedAt: serverTimestamp() });
+
+        await batch.commit();
     }
 
     const updateNodePosition = async (nodeId: string, position: { x: number, y: number }) => {

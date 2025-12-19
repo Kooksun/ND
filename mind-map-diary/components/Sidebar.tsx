@@ -13,6 +13,7 @@ import styles from "./Sidebar.module.css";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
 import { ReportData } from "@/hooks/useReports";
+import { toDateValue } from "@/utils/date";
 
 interface SidebarProps {
     selectedId: string | null;
@@ -82,20 +83,26 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
     const summarizeMap = async (mapId: string, mapTitle: string, forceRegenerate = false) => {
         if (!user) return;
         const map = maps.find(m => m.id === mapId);
+        if (!map) return;
+
+        const updatedAt = toDateValue(map.updatedAt)?.getTime() || 0;
+        const summarizedAt = toDateValue(map.summarizedAt)?.getTime() || 0;
+        const hasNewChanges = updatedAt > summarizedAt;
 
         // If summary exists and not forcing regeneration, show it first
-        if (map?.summary && !forceRegenerate) {
+        // UNLESS there are new changes since the last summary
+        if (map.summary && !forceRegenerate && !hasNewChanges) {
             const wantRegenerate = await modal.confirm({
                 title: `${map.emotion || "📝"} ${mapTitle} 정리`,
                 message: map.summary,
-                confirmText: "닫기",
-                cancelText: "다시 정리하기",
+                confirmText: "다시 정리하기",
+                cancelText: "닫기",
                 tone: "success",
                 showCancel: true
             });
 
-            // If user clicked "다시 정리하기" (cancelText returns false in modal.confirm)
-            if (!wantRegenerate) {
+            // If user clicked "다시 정리하기" (confirmText returns true)
+            if (wantRegenerate) {
                 summarizeMap(mapId, mapTitle, true);
             }
             return;
@@ -144,17 +151,6 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
         }
     };
 
-    const toDateValue = (value: any) => {
-        if (!value) return null;
-        if (value instanceof Date) return value;
-        if (typeof value === "string") {
-            const parsed = new Date(value);
-            return isNaN(parsed.getTime()) ? null : parsed;
-        }
-        if (typeof value.toDate === "function") return value.toDate();
-        if (value.seconds) return new Date(value.seconds * 1000);
-        return null;
-    };
 
     const formatDateKey = (date: Date) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

@@ -11,6 +11,7 @@ export interface MapData {
     type?: 'blank' | 'daily' | string;
     emotion?: string;
     summary?: string;
+    summarizedAt?: any;
 }
 
 export const useMaps = () => {
@@ -146,6 +147,7 @@ export const useMaps = () => {
         const mapRef = doc(db, "users", user.uid, "maps", mapId);
         await updateDoc(mapRef, {
             ...metadata,
+            summarizedAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
     };
