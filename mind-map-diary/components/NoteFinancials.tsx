@@ -75,6 +75,17 @@ export default function NoteFinancials({ financials }: NoteFinancialsProps) {
                 <div className={styles.chartContainer}>
                     <div className={styles.chartTitle}>지출 통계</div>
                     <PieChart data={pieData} />
+                    <div className={styles.legend}>
+                        {pieData.map((item, idx) => (
+                            <div key={idx} className={styles.legendItem}>
+                                <span
+                                    className={styles.legendColor}
+                                    style={{ backgroundColor: item.color }}
+                                />
+                                <span className={styles.legendLabel}>{item.label}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -109,7 +120,7 @@ function PieChart({ data }: { data: any[] }) {
                     </path>
                 );
             })}
-            <circle cx="16" cy="16" r="10" fill="white" className="center-hole" style={{ opacity: 0.1 }} />
+            <circle cx="16" cy="16" r="10" fill="var(--center-hole-color, white)" className="center-hole" style={{ opacity: 0.1 }} />
         </svg>
     );
 }

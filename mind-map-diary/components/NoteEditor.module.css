@@ -32,7 +32,7 @@
 }
 
 /* Dark mode overrides if needed via CSS variables */
-:global(.dark-theme) .container {
-    --bg-color: #1e1e1e;
+:global(.dark) .container {
+    --bg-color: #2d3436;
     --text-color: #dfe6e9;
 }
