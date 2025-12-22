@@ -82,7 +82,11 @@ export const generateIdeas = async (
 
 export const summarizeDiary = async (
     markdownContent: string
-): Promise<{ summary: string; emotion: string }> => {
+): Promise<{
+    summary: string;
+    emotion: string;
+    financials?: { type: 'income' | 'expense'; label: string; amount: number; }[]
+}> => {
     if (!API_KEY) throw new Error("Groq API Key is missing");
 
     try {
@@ -96,11 +100,16 @@ export const summarizeDiary = async (
     Task:
     1. Write a 3-4 sentence summary of their day in a warm, encouraging, and supportive tone (Korean).
     2. Pick ONE emoji that best represents the overall emotion/mood of the day.
+    3. If there are mentions of income (수입/입금) or expenses (지출/쓰다/결제), extract them into a list.
     
     Return the result in JSON format like this:
     {
       "summary": "오늘 정말 고생 많으셨어요...",
-      "emotion": "😊"
+      "emotion": "😊",
+      "financials": [
+        { "type": "expense", "label": "점심 제육덮밥", "amount": 12000 },
+        { "type": "income", "label": "월급", "amount": 1000000 }
+      ]
     }
     
     Return ONLY the JSON string. Do not include markdown blocks or any other text.`;
@@ -117,7 +126,8 @@ export const summarizeDiary = async (
 
             return {
                 summary: data.summary || "내용을 요약하지 못했어요.",
-                emotion: data.emotion || "📝"
+                emotion: data.emotion || "📝",
+                financials: data.financials || []
             };
         });
     } catch (error) {

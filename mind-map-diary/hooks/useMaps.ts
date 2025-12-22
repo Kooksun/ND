@@ -13,6 +13,11 @@ export interface MapData {
     summary?: string;
     summarizedAt?: any;
     content?: string; // For 'note' type
+    financials?: {
+        type: 'income' | 'expense';
+        label: string;
+        amount: number;
+    }[];
 }
 
 export const useMaps = () => {
@@ -145,7 +150,7 @@ export const useMaps = () => {
         await deleteDoc(doc(db, "users", user.uid, "maps", mapId));
     }
 
-    const updateMapMetadata = async (mapId: string, metadata: { emotion?: string; summary?: string }) => {
+    const updateMapMetadata = async (mapId: string, metadata: { emotion?: string; summary?: string; financials?: any[] }) => {
         if (!user) return;
         const mapRef = doc(db, "users", user.uid, "maps", mapId);
         await updateDoc(mapRef, {

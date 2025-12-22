@@ -3,13 +3,15 @@
 import { useEffect, useState, useRef } from "react";
 import styles from "./NoteEditor.module.css";
 import { useMaps } from "@/hooks/useMaps";
+import NoteFinancials from "./NoteFinancials";
 
 interface NoteEditorProps {
     mapId: string;
     initialContent: string;
+    financials?: any[];
 }
 
-export default function NoteEditor({ mapId, initialContent }: NoteEditorProps) {
+export default function NoteEditor({ mapId, initialContent, financials }: NoteEditorProps) {
     const [content, setContent] = useState(initialContent);
     const { updateMapContent } = useMaps();
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,6 +41,9 @@ export default function NoteEditor({ mapId, initialContent }: NoteEditorProps) {
                 placeholder="생각을 자유롭게 적어보세요..."
                 autoFocus
             />
+            {financials && financials.length > 0 && (
+                <NoteFinancials financials={financials} />
+            )}
         </div>
     );
 }

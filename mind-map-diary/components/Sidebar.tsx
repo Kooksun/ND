@@ -118,7 +118,13 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
         });
 
         try {
-            const markdownBody = await buildMarkdownSummary(user.uid, mapId);
+            let markdownBody = "";
+            if (map.type === 'note') {
+                markdownBody = map.content || "";
+            } else {
+                markdownBody = await buildMarkdownSummary(user.uid, mapId);
+            }
+
             if (!markdownBody || markdownBody.trim().length === 0) {
                 await modal.alert({
                     title: "정리할 노드가 없어요",
@@ -129,8 +135,8 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
                 return;
             }
 
-            const { summary, emotion } = await summarizeDiary(markdownBody);
-            await updateMapMetadata(mapId, { summary, emotion });
+            const { summary, emotion, financials } = await summarizeDiary(markdownBody);
+            await updateMapMetadata(mapId, { summary, emotion, financials });
 
             await modal.alert({
                 title: `${emotion} ${mapTitle} 정리 완료`,
@@ -263,7 +269,7 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
             }
 
             const combinedMarkdown = summaries.join("\n\n");
-            const { summary, emotion } = await summarizeDiary(combinedMarkdown);
+            const { summary, emotion, financials } = await summarizeDiary(combinedMarkdown);
 
             await modal.alert({
                 title: `${emotion} ${selectedDate} 통합 정리 완료`,
@@ -271,6 +277,8 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
                 tone: "success",
                 confirmText: "확인"
             });
+            // Financials are currently not saved in unified summary by date, 
+            // since it's just an alert. If needed, we could save it to a separate report.
             setIsDateModalOpen(false);
         } catch (error) {
             console.error("Failed to summarize maps by date:", error);

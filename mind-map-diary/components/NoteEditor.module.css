@@ -7,7 +7,7 @@
     background-color: var(--bg-color, #f8f9fa);
     color: var(--text-color, #2d3436);
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .editor {

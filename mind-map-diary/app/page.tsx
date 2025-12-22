@@ -118,7 +118,13 @@ export default function Home() {
     });
 
     try {
-      const markdownBody = await buildMarkdownSummary(user.uid, selectedId);
+      let markdownBody = "";
+      if (map.type === 'note') {
+        markdownBody = map.content || "";
+      } else {
+        markdownBody = await buildMarkdownSummary(user.uid, selectedId);
+      }
+
       if (!markdownBody || markdownBody.trim().length === 0) {
         setIsSummarizing(false);
         await modal.alert({
@@ -130,8 +136,8 @@ export default function Home() {
         return;
       }
 
-      const { summary, emotion } = await summarizeDiary(markdownBody);
-      await updateMapMetadata(selectedId, { summary, emotion });
+      const { summary, emotion, financials } = await summarizeDiary(markdownBody);
+      await updateMapMetadata(selectedId, { summary, emotion, financials });
 
       await modal.alert({
         title: `${emotion} ${mapTitle} 정리 완료`,
@@ -255,7 +261,7 @@ export default function Home() {
 
         {selectedType === 'map' ? (
           currentMap?.type === 'note' ? (
-            <NoteEditor mapId={selectedId!} initialContent={currentMap.content || ""} />
+            <NoteEditor mapId={selectedId!} initialContent={currentMap.content || ""} financials={currentMap.financials} />
           ) : (
             <MindMap mapId={selectedId} key={selectedId || "empty"} />
           )
