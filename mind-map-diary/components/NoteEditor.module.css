@@ -1,0 +1,38 @@
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 80px 40px 40px 40px;
+    background-color: var(--bg-color, #f8f9fa);
+    color: var(--text-color, #2d3436);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.editor {
+    flex: 1;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    resize: none;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    outline: none;
+    padding: 20px;
+}
+
+.editor::placeholder {
+    color: #b2bec3;
+    font-style: italic;
+}
+
+/* Dark mode overrides if needed via CSS variables */
+:global(.dark-theme) .container {
+    --bg-color: #1e1e1e;
+    --text-color: #dfe6e9;
+}

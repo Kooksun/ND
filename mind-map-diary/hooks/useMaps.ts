@@ -8,10 +8,11 @@ export interface MapData {
     title: string;
     createdAt?: any;
     updatedAt?: any;
-    type?: 'blank' | 'daily' | string;
+    type?: 'blank' | 'daily' | 'note' | string;
     emotion?: string;
     summary?: string;
     summarizedAt?: any;
+    content?: string; // For 'note' type
 }
 
 export const useMaps = () => {
@@ -41,7 +42,7 @@ export const useMaps = () => {
         return () => unsubscribe();
     }, [user]);
 
-    const createMap = async (requestedTitle?: string, type: 'blank' | 'daily' = 'blank') => {
+    const createMap = async (requestedTitle?: string, type: 'blank' | 'daily' | 'note' = 'blank') => {
         if (!user) return null;
         try {
             let title = requestedTitle;
@@ -49,7 +50,8 @@ export const useMaps = () => {
             if (!title) {
                 const now = new Date();
                 const yy = String(now.getFullYear()).slice(-2);
-                const baseTitle = type === 'daily'
+                const isDated = type === 'daily' || type === 'note';
+                const baseTitle = isDated
                     ? `${yy}년 ${now.getMonth() + 1}월 ${now.getDate()}일의 기록`
                     : "제목 없음";
 
@@ -66,7 +68,8 @@ export const useMaps = () => {
 
             const mapDocRef = await addDoc(collection(db, "users", user.uid, "maps"), {
                 title,
-                type, // Store the type just in case
+                type,
+                content: type === 'note' ? "" : null,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
@@ -152,12 +155,22 @@ export const useMaps = () => {
         });
     };
 
+    const updateMapContent = async (mapId: string, content: string) => {
+        if (!user) return;
+        const mapRef = doc(db, "users", user.uid, "maps", mapId);
+        await updateDoc(mapRef, {
+            content,
+            updatedAt: serverTimestamp()
+        });
+    };
+
     return {
         maps,
         loading,
         createMap,
         updateMapTitle,
         updateMapMetadata,
+        updateMapContent,
         deleteMap
     };
 };

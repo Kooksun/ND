@@ -19,7 +19,7 @@ interface SidebarProps {
     selectedId: string | null;
     selectedType: 'map' | 'report';
     onSelect: (id: string | null, type: 'map' | 'report') => void;
-    onNewMap: (type?: 'blank' | 'daily') => void;
+    onNewMap: (type?: 'blank' | 'daily' | 'note') => void;
     reports: ReportData[];
     deleteReport: (id: string) => Promise<void>;
 }
@@ -360,9 +360,9 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
 
                 <div className={styles.buttonGroup}>
                     <button
-                        onClick={() => onNewMap('blank')}
+                        onClick={() => onNewMap('note')}
                         className={styles.newButton}
-                        title="빈 페이지"
+                        title="새 페이지"
                         data-tooltip={isCollapsed ? "새 페이지" : undefined}
                     >
                         <Plus size={18} />
@@ -371,12 +371,12 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
                     <button
                         onClick={() => onNewMap('daily')}
                         className={`${styles.newButton} ${styles.dailyButton}`}
-                        title="데일리 모드"
+                        title="새 마인드맵"
                         style={isCollapsed ? { marginTop: '5px', backgroundColor: '#e17055' } : { marginLeft: '5px', backgroundColor: '#e17055' }}
-                        data-tooltip={isCollapsed ? "데일리 모드" : undefined}
+                        data-tooltip={isCollapsed ? "새 마인드맵" : undefined}
                     >
                         <Plus size={18} />
-                        <span className={styles.buttonText}>데일리</span>
+                        <span className={styles.buttonText}>새 마인드맵</span>
                     </button>
                 </div>
             </div>

@@ -12,6 +12,7 @@ import { Edit2, ListTree, Trash2 } from "lucide-react";
 import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
 import { toDateValue } from "@/utils/date";
+import NoteEditor from "@/components/NoteEditor";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -59,7 +60,7 @@ export default function Home() {
     setSelectedType(type);
   };
 
-  const handleNewMap = async (type: 'blank' | 'daily' = 'blank') => {
+  const handleNewMap = async (type: 'blank' | 'daily' | 'note' = 'blank') => {
     const newId = await createMap(undefined, type);
     if (newId) {
       handleSelect(newId, 'map');
@@ -253,7 +254,11 @@ export default function Home() {
         )}
 
         {selectedType === 'map' ? (
-          <MindMap mapId={selectedId} key={selectedId || "empty"} />
+          currentMap?.type === 'note' ? (
+            <NoteEditor mapId={selectedId!} initialContent={currentMap.content || ""} />
+          ) : (
+            <MindMap mapId={selectedId} key={selectedId || "empty"} />
+          )
         ) : (
           currentReport && <ReportViewer report={currentReport} />
         )}
