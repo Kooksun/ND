@@ -14,6 +14,22 @@ import { buildMarkdownSummary } from "@/lib/summarizeMap";
 import { summarizeDiary } from "@/utils/gemini";
 import { ReportData } from "@/hooks/useReports";
 import { toDateValue } from "@/utils/date";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+const Logo = () => (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="url(#logo-grad)" />
+        <path d="M16 24V8C16 8 13 7 9 7C5 7 4 9 4 9V23C4 23 5 21 9 21C13 21 16 22 16 22C16 22 19 21 23 21C27 21 28 23 28 23V9C28 9 27 7 23 7C19 7 16 8 16 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="16" y1="8" x2="16" y2="24" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        <defs>
+            <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#0984e3" />
+                <stop offset="1" stopColor="#6c5ce7" />
+            </linearGradient>
+        </defs>
+    </svg>
+);
 
 interface SidebarProps {
     selectedId: string | null;
@@ -41,6 +57,12 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
     });
     const [isDateSummarizing, setIsDateSummarizing] = useState(false);
     const { theme, toggleTheme } = useTheme();
+
+    // Search state
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState<MapData[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     // Auto-collapse on mobile devices
     useEffect(() => {
@@ -316,6 +338,62 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
         }
     };
 
+    const handleSearch = async () => {
+        if (!searchTerm.trim() || !user) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        const queryStr = searchTerm.toLowerCase();
+
+        try {
+            // 1. Initial filter based on map-level metadata (FAST)
+            const mapResults = maps.filter(map => {
+                const inTitle = map.title?.toLowerCase().includes(queryStr);
+                const inSummary = map.summary?.toLowerCase().includes(queryStr);
+                const inMapContent = map.content?.toLowerCase().includes(queryStr);
+                return inTitle || inSummary || inMapContent;
+            });
+
+            const foundMapIds = new Set(mapResults.map(r => r.id));
+            const nodeMatchMaps: MapData[] = [];
+
+            // 2. Search nodes for maps not already found (SLOWER)
+            const remainingMaps = maps.filter(m => !foundMapIds.has(m.id) && m.type !== 'note');
+
+            await Promise.all(remainingMaps.map(async (map) => {
+                const nodesRef = collection(db, "users", user.uid, "maps", map.id, "nodes");
+                const snapshot = await getDocs(nodesRef);
+                const hasMatch = snapshot.docs.some(doc => {
+                    const data = doc.data();
+                    const label = (data.label || data.data?.label || "").toLowerCase();
+                    const content = (data.content || data.data?.content || "").toLowerCase();
+                    return label.includes(queryStr) || content.includes(queryStr);
+                });
+
+                if (hasMatch) {
+                    nodeMatchMaps.push(map);
+                }
+            }));
+
+            setSearchResults([...mapResults, ...nodeMatchMaps].sort((a, b) => {
+                const timeA = toDateValue(a.updatedAt)?.getTime() || 0;
+                const timeB = toDateValue(b.updatedAt)?.getTime() || 0;
+                return timeB - timeA;
+            }));
+        } catch (error) {
+            console.error("Search failed:", error);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
 
     const handleLogoutFromSettings = async () => {
         setIsSettingsOpen(false);
@@ -337,25 +415,42 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
         <div className={`${styles.container} ${isCollapsed ? styles.collapsed : ''}`}>
             <div className={styles.header}>
                 <div className={styles.headerTop}>
-                    {!isCollapsed && <h2 className={styles.title}>내 다이어리</h2>}
+                    {!isCollapsed && (
+                        <div className={styles.logoWrapper}>
+                            <Logo />
+                        </div>
+                    )}
                     <div className={styles.headerActions}>
-                        {!isCollapsed && (
-                            <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className={styles.iconButton}
-                                title="설정"
-                            >
-                                <Settings size={18} />
-                            </button>
-                        )}
                         <button
-                            onClick={() => setIsDateModalOpen(true)}
+                            onClick={() => setIsSettingsOpen(true)}
                             className={styles.iconButton}
-                            title="날짜로 이동"
-                            data-tooltip={isCollapsed ? "날짜로 이동" : undefined}
+                            title="설정"
+                            data-tooltip={isCollapsed ? "설정" : undefined}
                         >
-                            <Calendar size={18} />
+                            <Settings size={18} />
                         </button>
+                        {!isCollapsed && (
+                            <>
+                                <button
+                                    onClick={() => setIsDateModalOpen(true)}
+                                    className={styles.iconButton}
+                                    title="날짜로 이동"
+                                >
+                                    <Calendar size={18} />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsSearchOpen(true);
+                                        setSearchTerm("");
+                                        setSearchResults([]);
+                                    }}
+                                    className={styles.iconButton}
+                                    title="검색"
+                                >
+                                    <Search size={18} />
+                                </button>
+                            </>
+                        )}
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
                             className={styles.toggleButton}
@@ -624,6 +719,75 @@ export default function Sidebar({ selectedId, selectedType, onSelect, onNewMap, 
                                 className={styles.modalActionButton}
                                 onClick={() => setIsSettingsOpen(false)}
                                 style={{ width: '120px', flex: 'none' }}
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isSearchOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsSearchOpen(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div className={styles.modalTitle}>기록 검색</div>
+                            <button
+                                onClick={() => setIsSearchOpen(false)}
+                                className={styles.iconButton}
+                                title="닫기"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <div className={styles.searchBox}>
+                                <input
+                                    type="text"
+                                    placeholder="제목, 요약, 또는 노트 내용 검색..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    className={styles.searchInput}
+                                    autoFocus
+                                />
+                                <button className={styles.searchButton} onClick={handleSearch} disabled={isSearching}>
+                                    {isSearching ? <div className={styles.spinner} /> : <Search size={18} />}
+                                </button>
+                            </div>
+
+                            <div className={styles.searchResults}>
+                                {isSearching ? (
+                                    <div className={styles.loadingResults}>전체 기록을 꼼꼼히 찾고 있어요...</div>
+                                ) : searchResults.length > 0 ? (
+                                    searchResults.map(result => (
+                                        <div
+                                            key={result.id}
+                                            className={styles.searchResultItem}
+                                            onClick={() => {
+                                                onSelect(result.id, 'map');
+                                                setIsSearchOpen(false);
+                                            }}
+                                        >
+                                            <div className={styles.resultEmoji}>{result.emotion || (result.type === 'note' ? "📄" : "🗺️")}</div>
+                                            <div className={styles.resultInfo}>
+                                                <div className={styles.resultTitle}>{result.title}</div>
+                                                {result.summary && (
+                                                    <div className={styles.resultSummary}>{result.summary.slice(0, 60)}...</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    searchTerm && <div className={styles.noResults}>검색 결과가 없습니다.</div>
+                                )}
+                            </div>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.modalActionButton}
+                                onClick={() => setIsSearchOpen(false)}
+                                style={{ backgroundColor: "#b2bec3", color: "#2d3436" }}
                             >
                                 닫기
                             </button>
