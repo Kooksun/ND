@@ -204,7 +204,7 @@ export default function Home() {
   const currentReport = selectedType === 'report' ? reports.find(r => r.id === selectedId) : null;
 
   return (
-    <main style={{ width: '100vw', height: '100vh', display: 'flex', overflow: 'hidden' }}>
+    <main style={{ width: '100%', height: '100vh', display: 'flex', overflow: 'hidden' }}>
       <Sidebar
         selectedId={selectedId}
         selectedType={selectedType}

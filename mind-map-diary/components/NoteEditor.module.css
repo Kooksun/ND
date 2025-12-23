@@ -15,7 +15,18 @@
     background-color: var(--bg-color, #f8f9fa);
     color: var(--text-color, #2d3436);
     box-sizing: border-box;
+    overflow: hidden;
+    /* Prevent container itself from scrolling */
+}
+
+.scrollArea {
+    flex: 1;
     overflow-y: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 40px;
 }
 
 .notebook {
@@ -34,6 +45,7 @@
         linear-gradient(90deg, transparent 50%, var(--spine-shadow) 50%),
         linear-gradient(90deg, var(--spine-shadow) 50%, transparent 50%);
     background-size: 4px 100%;
+    flex-shrink: 0;
 }
 
 .page {
@@ -42,7 +54,8 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    min-height: 600px;
+    /* Remove min-height to allow flex to govern size, or keep if desired */
+    min-height: 100%;
 }
 
 .leftPage {
@@ -75,6 +88,8 @@
     padding: 1.5em 2em 1.5em 4.5em;
     /* 왼쪽 빨간 선 공간 확보 */
     box-sizing: border-box;
+    overflow-y: visible;
+    /* Let the notebook handle the scrollbar */
 }
 
 .editor::placeholder {
@@ -93,6 +108,7 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px var(--page-shadow);
         margin-bottom: 20px;
+        min-height: 400px;
     }
 
     .leftPage,

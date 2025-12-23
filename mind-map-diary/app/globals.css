@@ -50,11 +50,18 @@ body.dark .react-flow__minimap-node {
   stroke: none;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   color: var(--foreground);
   background: var(--background);
-  min-height: 100vh;
 }
 
 a {

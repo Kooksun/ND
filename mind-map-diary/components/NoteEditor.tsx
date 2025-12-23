@@ -62,42 +62,44 @@ export default function NoteEditor({ mapId, initialContent, financials }: NoteEd
 
     return (
         <div className={styles.container}>
-            <div className={styles.notebook}>
-                {isMobile ? (
-                    <div className={styles.page}>
-                        <textarea
-                            className={styles.editor}
-                            value={content}
-                            onChange={handleMobileChange}
-                            placeholder="생각을 자유롭게 적어보세요..."
-                            autoFocus
-                        />
-                    </div>
-                ) : (
-                    <>
-                        <div className={`${styles.page} ${styles.leftPage}`}>
+            <div className={styles.scrollArea}>
+                <div className={styles.notebook}>
+                    {isMobile ? (
+                        <div className={styles.page}>
                             <textarea
                                 className={styles.editor}
-                                value={leftContent}
-                                onChange={handleLeftChange}
-                                placeholder="왼쪽 페이지에 적어보세요..."
+                                value={content}
+                                onChange={handleMobileChange}
+                                placeholder="생각을 자유롭게 적어보세요..."
                                 autoFocus
                             />
                         </div>
-                        <div className={`${styles.page} ${styles.rightPage}`}>
-                            <textarea
-                                className={styles.editor}
-                                value={rightContent}
-                                onChange={handleRightChange}
-                                placeholder="오른쪽 페이지에 적어보세요..."
-                            />
-                        </div>
-                    </>
+                    ) : (
+                        <>
+                            <div className={`${styles.page} ${styles.leftPage}`}>
+                                <textarea
+                                    className={styles.editor}
+                                    value={leftContent}
+                                    onChange={handleLeftChange}
+                                    placeholder="왼쪽 페이지에 적어보세요..."
+                                    autoFocus
+                                />
+                            </div>
+                            <div className={`${styles.page} ${styles.rightPage}`}>
+                                <textarea
+                                    className={styles.editor}
+                                    value={rightContent}
+                                    onChange={handleRightChange}
+                                    placeholder="오른쪽 페이지에 적어보세요..."
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+                {financials && financials.length > 0 && (
+                    <NoteFinancials financials={financials} />
                 )}
             </div>
-            {financials && financials.length > 0 && (
-                <NoteFinancials financials={financials} />
-            )}
         </div>
     );
 }
